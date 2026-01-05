@@ -1,5 +1,4 @@
 import * as auth from "./auth.js";
-import { loadSession } from "./session.js";
 
 const elError = document.getElementById("vf-loginError");
 const elStatus = document.getElementById("vf-loginStatus");
@@ -18,12 +17,18 @@ function setStatus(msg) {
 }
 
 async function init() {
-  // If already logged in, go to main menu.
-  setStatus("Checking session…");
-  const session = await loadSession();
-  if (session) {
-    setStatus("Already signed in. Redirecting…");
-    window.location.replace(`${window.location.origin}/mainmenu.html`);
+  // IMPORTANT:
+  // Do NOT hit the API or check permissions on first visit.
+  // Only redirect to the permission-check page if we already have a stored, non-expired auth token.
+  const a = auth.getAuth();
+
+  if (a && auth.isExpired(a)) {
+    auth.logout();
+  }
+
+  if (a && !auth.isExpired(a)) {
+    setStatus("Already signed in. Checking permissions…");
+    window.location.replace(`${window.location.origin}/checking.html`);
     return;
   }
 

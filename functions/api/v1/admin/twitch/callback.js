@@ -39,5 +39,5 @@ export async function onRequest(context) {
   }
 
   // Send admin back to the site (home) with a small hint flag
-  return Response.redirect("/?twitch_connected=1", 302);
+  return Response.redirect("/checking.html?twitch_connected=1", 302);
 }

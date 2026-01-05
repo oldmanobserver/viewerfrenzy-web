@@ -1,78 +1,188 @@
-(async () => {
-  const session = window.VF_STORAGE?.getSession?.();
-  if (!session?.accessToken) {
-    // Not logged in
-    window.location.href = "/index.html";
+import * as auth from "./auth.js";
+
+const elStatus = document.getElementById("vf-checkingStatus");
+const elDetail = document.getElementById("vf-checkingDetail");
+const elError = document.getElementById("vf-checkingError");
+
+const VF_DEBUG = new URLSearchParams(window.location.search).get("vfdebug") === "1";
+const dbg = (...args) => {
+  if (VF_DEBUG) console.log("[VF checking]", ...args);
+};
+
+function setStatus(msg) {
+  if (!elStatus) return;
+  elStatus.textContent = msg || "";
+}
+
+function setDetail(msg) {
+  if (!elDetail) return;
+  elDetail.hidden = !msg;
+  elDetail.textContent = msg || "";
+}
+
+function setError(msg) {
+  if (!elError) return;
+  elError.hidden = !msg;
+  elError.textContent = msg || "";
+}
+
+async function readBody(resp) {
+  const text = await resp.text();
+  if (!text) return { text: "", json: null };
+  try {
+    return { text, json: JSON.parse(text) };
+  } catch {
+    return { text, json: null };
+  }
+}
+
+function withDebug(url) {
+  if (!VF_DEBUG) return url;
+  const u = new URL(url, window.location.origin);
+  u.searchParams.set("vfdebug", "1");
+  return u.toString();
+}
+
+function redirect(toPath) {
+  window.location.replace(`${window.location.origin}${toPath}`);
+}
+
+function encode(v) {
+  return encodeURIComponent(v ?? "");
+}
+
+async function init() {
+  setError("");
+
+  const a = auth.getAuth();
+  if (!a) {
+    dbg("No auth in storage -> go to login");
+    redirect("/index.html");
     return;
   }
 
-  const token = session.accessToken;
-
-  // Helper: parse JSON safely
-  async function safeJson(resp) {
-    const text = await resp.text();
-    if (!text || !text.trim()) return null;
-    try { return JSON.parse(text); } catch { return null; }
-  }
-
-  // 1) Fetch "me" (this also validates token)
-  const meResp = await fetch("/api/v1/me", {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-
-  if (meResp.status === 401) {
-    window.VF_AUTH.logout();
+  if (auth.isExpired(a)) {
+    dbg("Auth expired -> logout");
+    auth.logout();
+    redirect("/index.html");
     return;
   }
 
-  // If /api/v1/me is gated and returns 403, we can use that directly
-  if (meResp.status === 403) {
-    window.location.href = "/no-access.html";
-    return;
-  }
+  // ---------------------------------------------------------------------------
+  // 1) Broadcaster auto-connect (server-side env decides who is broadcaster)
+  // ---------------------------------------------------------------------------
+  setStatus("Checking permissions…");
+  setDetail("Checking streamer setup…");
 
-  const meJson = await safeJson(meResp);
-  const me = meJson?.user;
-
-  if (!me?.login) {
-    window.VF_AUTH.logout();
-    return;
-  }
-
-  // 2) If broadcaster is logged in, ensure server has broadcaster subscription tokens
-  // Use config broadcaster login (client-side) if available; fallback to server-side endpoint later
-  const broadcasterLogin = (window.VF_CONFIG?.broadcasterLogin || "").toLowerCase();
-  if (broadcasterLogin && me.login.toLowerCase() === broadcasterLogin) {
-    const stResp = await fetch("/api/v1/admin/twitch/status", {
-      headers: { Authorization: `Bearer ${token}` },
+  try {
+    const stResp = await fetch(withDebug("/api/v1/admin/twitch/status"), {
+      headers: { Authorization: `Bearer ${a.accessToken}` },
       cache: "no-store",
     });
 
-    const st = await safeJson(stResp);
-    if (stResp.ok && st?.connected === false) {
-      // This will take you through Twitch consent and return to callback.
-      window.location.href = "/api/v1/admin/twitch/connect";
+    const stBody = await readBody(stResp);
+    dbg("admin/twitch/status", stResp.status, stBody.json || stBody.text);
+
+    if (stResp.status === 401) {
+      // Token invalid
+      auth.logout();
+      redirect("/index.html");
       return;
     }
+
+    if (stResp.ok) {
+      const st = stBody.json || {};
+      if (st?.connected === false) {
+        setDetail("Connecting streamer permissions (one-time)…");
+
+        const cResp = await fetch(withDebug("/api/v1/admin/twitch/connect"), {
+          headers: {
+            Authorization: `Bearer ${a.accessToken}`,
+            Accept: "application/json",
+          },
+          cache: "no-store",
+        });
+
+        const cBody = await readBody(cResp);
+        dbg("admin/twitch/connect", cResp.status, cBody.json || cBody.text);
+
+        if (cResp.ok && cBody.json?.url) {
+          // Redirect the browser to Twitch consent
+          window.location.href = cBody.json.url;
+          return;
+        }
+
+        // If connect fails, continue to access check (it might still work for VIP-only mode),
+        // but show helpful debug info.
+        setDetail("Streamer setup could not be verified. Continuing…");
+      }
+    }
+    // 403 means "not the broadcaster" -> ignore and continue.
+  } catch (e) {
+    dbg("status/connect flow failed:", e);
+    // Continue to access check anyway.
   }
 
-  // 3) Decide access (call a dedicated endpoint)
-  const accessResp = await fetch("/api/v1/access", {
-    headers: { Authorization: `Bearer ${token}` },
+  // ---------------------------------------------------------------------------
+  // 2) Website access check (subscriber OR VIP)
+  // ---------------------------------------------------------------------------
+  setDetail("Checking subscriber/VIP access…");
+
+  const accessResp = await fetch(withDebug("/api/v1/access"), {
+    headers: { Authorization: `Bearer ${a.accessToken}`, Accept: "application/json" },
     cache: "no-store",
   });
 
-  if (accessResp.status === 200) {
-    window.location.href = "/mainmenu";
+  const accessBody = await readBody(accessResp);
+  dbg("access", accessResp.status, accessBody.json || accessBody.text);
+
+  if (accessResp.status === 401) {
+    auth.logout();
+    redirect("/index.html");
     return;
   }
 
+  if (accessResp.ok) {
+    setDetail("Access granted. Redirecting…");
+    redirect("/mainmenu.html");
+    return;
+  }
+
+  // 403 = not subscribed / not VIP
   if (accessResp.status === 403) {
-    window.location.href = "/no-access.html";
+    const msg =
+      accessBody.json?.message ||
+      "Access is currently restricted during alpha/beta. Please subscribe on Twitch to get access.";
+
+    const broadcaster = accessBody.json?.required?.broadcaster || "";
+    const detail = accessBody.json?.details || "";
+
+    // IMPORTANT: clear auth so the site doesn't immediately re-check and bounce on next visit
+    auth.logout();
+
+    const url =
+      `/no-access.html?msg=${encode(msg)}` +
+      (broadcaster ? `&broadcaster=${encode(broadcaster)}` : "") +
+      (detail ? `&detail=${encode(detail)}` : "") +
+      (VF_DEBUG ? `&vfdebug=1` : "");
+
+    redirect(url);
     return;
   }
 
-  // Anything unexpected
-  window.location.href = "/no-access.html";
-})();
+  // Other errors (misconfiguration, etc.)
+  const fallback =
+    accessBody.json?.message ||
+    accessBody.json?.error ||
+    accessBody.text ||
+    `Unexpected response (${accessResp.status})`;
+
+  setError(`Unable to verify access right now. ${fallback}`);
+  setDetail("");
+}
+
+init().catch((e) => {
+  dbg("fatal:", e);
+  setError(e?.message || String(e));
+  setDetail("");
+});

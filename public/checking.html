@@ -1,20 +1,39 @@
 <!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>ViewerFrenzy - Checking permissions</title>
-  <link rel="stylesheet" href="/css/app.css" />
-</head>
-<body>
-  <div class="center-card">
-    <h2>Checking permissions…</h2>
-    <p>Please wait while we verify your Twitch access.</p>
-  </div>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
 
-  <script src="/js/config.js"></script>
-  <script src="/js/storage.js"></script>
-  <script src="/js/auth.js"></script>
-  <script src="/js/api.js"></script>
-  <script src="/js/checking.js"></script>
-</body>
+    <title>ViewerFrenzy – Checking Access</title>
+    <meta name="description" content="ViewerFrenzy – Checking permissions." />
+
+    <link rel="preconnect" href="https://id.twitch.tv" />
+    <link rel="stylesheet" href="/styles/app.css" />
+
+    <!-- App config (twitch client id, etc.) -->
+    <script src="/config.js"></script>
+  </head>
+  <body>
+    <div class="vf-login">
+      <div class="vf-loginCard">
+        <div class="vf-brand">
+          <div class="vf-brandMark" aria-hidden="true">VF</div>
+          <div>
+            <div class="vf-brandTitle">ViewerFrenzy</div>
+            <div class="vf-brandTag">Checking permissions…</div>
+          </div>
+        </div>
+
+        <div class="vf-loginBody">
+          <p id="vf-checkingStatus" class="vf-muted">Checking your Twitch login…</p>
+          <div id="vf-checkingDetail" class="vf-small vf-muted" style="margin-top: 10px" hidden></div>
+
+          <div id="vf-checkingError" class="vf-alert vf-alertError" hidden></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/js/checking.js"></script>
+  </body>
 </html>
