@@ -152,7 +152,7 @@ export async function requireTwitchUser(context) {
 //  - VF_KV_TWITCH_AUTH (KV binding) to persist rotated tokens
 // ---------------------------------------------------------------------------
 
-const DEFAULT_ALLOWED_BROADCASTER_LOGIN = "oldmanobserver";
+const DEFAULT_ALLOWED_BROADCASTER_LOGIN = "";
 
 let _vipCache = { fetchedAtMs: 0, set: null };
 let _broadcasterCache = { fetchedAtMs: 0, login: "", id: "" };
@@ -422,7 +422,6 @@ export async function requireWebsiteUser(context, { broadcasterLogin } = {}) {
 
   // Subscription check (using broadcaster token; viewers are not asked for subscription scopes)
   const envClientId = getEnvString(context.env, "VF_TWITCH_CLIENT_ID") || v.client_id;
-  const envBroadcasterLogin = getEnvString(context.env, "VF_TWITCH_BROADCASTER_LOGIN");
   const finalBroadcasterLogin = envBroadcasterLogin || allowedLogin;
 
   const broadcasterAuth = await getBroadcasterAuth(context.env);
