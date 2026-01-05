@@ -394,7 +394,20 @@ export async function requireWebsiteUser(context, { broadcasterLogin } = {}) {
   const user = auth.user;
 
   const loginLower = (user?.login || "").toLowerCase().trim();
-  const allowedLogin = (broadcasterLogin || DEFAULT_ALLOWED_BROADCASTER_LOGIN).toLowerCase().trim();
+  const envBroadcasterLogin = getEnvString(context.env, "VF_TWITCH_BROADCASTER_LOGIN");
+  const allowedLogin = (broadcasterLogin || envBroadcasterLogin || "").toLowerCase().trim();
+
+  if (!allowedLogin) {
+    return {
+      ok: false,
+      response: jsonResponse(
+        request,
+        { error: "server_misconfigured", message: "Missing VF_TWITCH_BROADCASTER_LOGIN env var." },
+        500
+      ),
+    };
+  }
+
 
   // Owner always allowed
   if (loginLower && loginLower === allowedLogin) {
@@ -478,7 +491,7 @@ export async function requireWebsiteUser(context, { broadcasterLogin } = {}) {
       request,
       {
         error: "access_denied",
-        message: "Access is currently restricted during alpha/beta. Please subscribe to oldmanobserver on Twitch to get access.",
+        message: `Access is currently restricted during alpha/beta. Please subscribe to ${allowedLogin} on Twitch to get access.`,
         details: sub.ok ? "not_subscribed" : sub.error,
         required: {
           broadcaster: finalBroadcasterLogin,
@@ -526,7 +539,14 @@ export async function getBroadcasterAuthStatus(env) {
  */
 export async function buildBroadcasterConnectUrl(env, { redirectUri, broadcasterLogin } = {}) {
   const clientId = getEnvString(env, "VF_TWITCH_CLIENT_ID");
-  const finalBroadcasterLogin = (broadcasterLogin || getEnvString(env, "VF_TWITCH_BROADCASTER_LOGIN") || DEFAULT_ALLOWED_BROADCASTER_LOGIN).toLowerCase();
+
+  const envBroadcasterLogin = getEnvString(env, "VF_TWITCH_BROADCASTER_LOGIN");
+  const finalBroadcasterLogin = (broadcasterLogin || envBroadcasterLogin || "").toLowerCase();
+
+  if (!finalBroadcasterLogin) {
+    return { ok: false, status: 500, error: "missing_broadcaster_login", message: "Missing VF_TWITCH_BROADCASTER_LOGIN env var." };
+  }
+
   if (!clientId) return { ok: false, status: 500, error: "missing_client_id" };
   if (!redirectUri) return { ok: false, status: 500, error: "missing_redirect_uri" };
 
