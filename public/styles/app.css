@@ -645,7 +645,18 @@ a { color: inherit; }
   width: 92%;
   height: 92%;
   object-fit: contain;
-  transform: rotateY(var(--vf-rotY, 0deg)) rotateZ(var(--vf-rotZ, 0deg));
+  /*
+    IMPORTANT:
+    Many of the exported PNGs are square (e.g., 1024×1024) and include transparent padding.
+    The tile thumbnails use object-fit: cover, which hides most padding.
+    The selected preview uses contain, which shows the full square. That can make some
+    vehicles LOOK like they sit lower than expected.
+    
+    We auto-center the visible (non-transparent) pixels by applying a translateY in JS.
+    (See: public/js/garage-page.js -> autoCenterPreviewImage)
+  */
+  display: block;
+  transform: translateY(var(--vf-previewShiftY, 0px)) rotateY(var(--vf-rotY, 0deg)) rotateZ(var(--vf-rotZ, 0deg));
   transform-style: preserve-3d;
   user-select: none;
   -webkit-user-drag: none;
