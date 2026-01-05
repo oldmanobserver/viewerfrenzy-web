@@ -25,19 +25,29 @@ export async function onRequest(context) {
     return jsonResponse(
       request,
       { error: "oauth_denied", message: errorDesc || error },
-      400,
+      400
     );
   }
 
-  const stored = await storeBroadcasterAuthFromCallback(env, { code, state, redirectUri: CALLBACK_URL });
+  const stored = await storeBroadcasterAuthFromCallback(env, {
+    code,
+    state,
+    redirectUri: CALLBACK_URL,
+  });
+
   if (!stored.ok) {
     return jsonResponse(
       request,
-      { error: stored.error || "callback_failed", message: "Could not complete Twitch connection.", details: stored.details || null },
-      stored.status || 500,
+      {
+        error: stored.error || "callback_failed",
+        message: "Could not complete Twitch connection.",
+        details: stored.details || null,
+      },
+      stored.status || 500
     );
   }
 
-  // Send admin back to the site (home) with a small hint flag
-  return Response.redirect("/checking.html?twitch_connected=1", 302);
+  // ✅ FIX: Cloudflare requires an absolute URL here (relative paths throw).
+  const returnTo = new URL("/checking?twitch_connected=1", request.url).toString();
+  return Response.redirect(returnTo, 302);
 }
