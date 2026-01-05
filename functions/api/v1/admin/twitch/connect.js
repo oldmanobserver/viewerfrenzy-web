@@ -20,7 +20,14 @@ export async function onRequest(context) {
   if (!auth.ok) return auth.response;
 
   const login = (auth.user?.login || "").toLowerCase();
-  const broadcasterLogin = (env?.VF_TWITCH_BROADCASTER_LOGIN || "oldmanobserver").toLowerCase();
+  const broadcasterLogin = (env?.VF_TWITCH_BROADCASTER_LOGIN || "").toLowerCase();
+  if (!broadcasterLogin) {
+    return jsonResponse(
+      request,
+      { error: "server_misconfigured", message: "Missing VF_TWITCH_BROADCASTER_LOGIN env var." },
+      500
+    );
+  }
 
   // Only the broadcaster can run this connect flow
   if (login !== broadcasterLogin) {

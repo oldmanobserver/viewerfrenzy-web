@@ -64,7 +64,7 @@ function parseHashParams() {
     setStatus("Redirecting…");
 
     // Go back to the main app.
-    window.location.replace(`${window.location.origin}/mainmenu.html`);
+    window.location.replace(`${window.location.origin}/checking.html`);
   } catch (e) {
     showError(e?.message || String(e));
     setStatus("");
