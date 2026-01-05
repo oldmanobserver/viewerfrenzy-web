@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+
+    <title>ViewerFrenzy – Character Creator</title>
+    <meta name="description" content="ViewerFrenzy – Stream-enabled racing chaos." />
+
+    <link rel="stylesheet" href="/styles/app.css" />
+
+    <script src="/config.js" defer></script>
+    <script type="module" src="/js/page-common.js" defer></script>
+    <script type="module" src="/js/charactercreator-page.js" defer></script>
+  </head>
+
+  <body data-page="character">
+    <header class="vf-topbar">
+      <button id="vf-menuBtn" class="vf-iconBtn" aria-label="Open menu" title="Menu" type="button">
+        <span aria-hidden="true">☰</span>
+      </button>
+
+      <div class="vf-topbarTitle" role="heading" aria-level="1">
+        <a href="/mainmenu.html" class="vf-link" style="color: inherit; text-decoration: none;">ViewerFrenzy</a>
+      </div>
+
+      <div class="vf-userChip" id="vf-userChip" hidden>
+        <img id="vf-userAvatar" class="vf-userAvatar" alt="" />
+        <div class="vf-userName" id="vf-userName">...</div>
+      </div>
+    </header>
+
+    <aside id="vf-sidenav" class="vf-sidenav" aria-hidden="true">
+      <div class="vf-sidenavHeader">
+        <div class="vf-brandSmall">
+          <div class="vf-brandMarkSmall" aria-hidden="true">VF</div>
+          <div>
+            <div class="vf-sidenavTitle">Menu</div>
+            <div class="vf-sidenavSub" id="vf-sidenavSub">Not signed in</div>
+          </div>
+        </div>
+        <button id="vf-closeMenuBtn" class="vf-iconBtn" aria-label="Close menu" title="Close" type="button">
+          <span aria-hidden="true">✕</span>
+        </button>
+      </div>
+
+      <nav class="vf-nav">
+        <a class="vf-navItem" href="/mainmenu.html" data-route="home">
+          <span class="vf-navIcon" aria-hidden="true">🏠</span>
+          <span>Home</span>
+        </a>
+
+        <a class="vf-navItem" href="/garage.html" data-route="garage">
+          <span class="vf-navIcon" aria-hidden="true">🛠️</span>
+          <span>Garage</span>
+        </a>
+
+        <a class="vf-navItem" href="/charactercreator.html" data-route="character">
+          <span class="vf-navIcon" aria-hidden="true">🧑‍🎨</span>
+          <span>Character Creator</span>
+          <span class="vf-pill">Soon</span>
+        </a>
+
+        <a class="vf-navItem" href="/logout.html" data-route="logout">
+          <span class="vf-navIcon" aria-hidden="true">🚪</span>
+          <span>Logout</span>
+        </a>
+      </nav>
+
+      <div class="vf-sidenavFooter">
+        <div class="vf-small vf-muted">
+          API healthcheck:
+          <a class="vf-link" href="/healthcheck" target="_blank" rel="noopener">/healthcheck</a>
+        </div>
+      </div>
+    </aside>
+
+    <div id="vf-backdrop" class="vf-backdrop" hidden></div>
+
+    <main id="vf-main" class="vf-main" tabindex="-1">
+      <div class="vf-container">
+        <h1 class="vf-h1">Character Creator</h1>
+
+        <div class="vf-card" style="margin-top: 12px">
+          <div class="vf-h2">Coming soon</div>
+          <div class="vf-muted" style="margin-top: 8px">
+            The web character creator is not implemented yet.
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <div id="vf-toast" class="vf-toast" hidden></div>
+  </body>
+</html>

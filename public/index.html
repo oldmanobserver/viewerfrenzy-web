@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark light" />
 
-    <title>ViewerFrenzy</title>
+    <title>ViewerFrenzy – Login</title>
     <meta name="description" content="ViewerFrenzy – Stream-enabled racing chaos." />
 
     <link rel="preconnect" href="https://id.twitch.tv" />
@@ -18,108 +18,39 @@
       Create /public/config.js (see /public/config.example.js) and set your Twitch Client ID.
     -->
     <script src="/config.js" defer></script>
-    <script type="module" src="/js/app.js" defer></script>
+    <script type="module" src="/js/index-page.js" defer></script>
   </head>
 
   <body>
-    <div id="vf-root" class="vf-root">
-      <!-- LOGIN SCREEN -->
-      <section id="vf-login" class="vf-screen vf-login" aria-hidden="true">
-        <div class="vf-loginCard">
-          <div class="vf-brand">
-            <div class="vf-brandMark" aria-hidden="true">VF</div>
-            <div>
-              <div class="vf-brandTitle">ViewerFrenzy</div>
-              <div class="vf-brandTag">Pick your default ride for stream races.</div>
-            </div>
+    <div class="vf-login">
+      <div class="vf-loginCard">
+        <div class="vf-brand">
+          <div class="vf-brandMark" aria-hidden="true">VF</div>
+          <div>
+            <div class="vf-brandTitle">ViewerFrenzy</div>
+            <div class="vf-brandTag">Pick your default ride for stream races.</div>
           </div>
-
-          <div class="vf-loginBody">
-            <p class="vf-muted">
-              This site uses Twitch login so we can save your vehicle defaults to your Twitch user id.
-            </p>
-
-            <button id="vf-loginBtn" class="vf-btn vf-btnPrimary">
-              Login with Twitch
-            </button>
-
-            <div class="vf-small vf-muted" style="margin-top: 10px">
-              Having trouble? Make sure your Twitch app redirect URLs include
-              <span class="vf-code">/callback.html</span>.
-            </div>
-          </div>
-
-          <div id="vf-loginError" class="vf-alert vf-alertError" hidden></div>
         </div>
-      </section>
 
-      <!-- APP SHELL -->
-      <section id="vf-app" class="vf-screen vf-app" aria-hidden="true">
-        <header class="vf-topbar">
-          <button id="vf-menuBtn" class="vf-iconBtn" aria-label="Open menu" title="Menu">
-            <span aria-hidden="true">☰</span>
+        <div class="vf-loginBody">
+          <p class="vf-muted">
+            Log in with Twitch so we can save your default vehicles to your Twitch user id.
+          </p>
+
+          <button id="vf-loginBtn" class="vf-btn vf-btnPrimary" type="button">
+            Login with Twitch
           </button>
 
-          <div class="vf-topbarTitle" role="heading" aria-level="1">ViewerFrenzy</div>
+          <div id="vf-loginStatus" class="vf-small vf-muted" style="margin-top: 10px" hidden></div>
 
-          <div class="vf-userChip" id="vf-userChip" hidden>
-            <img id="vf-userAvatar" class="vf-userAvatar" alt="" />
-            <div class="vf-userName" id="vf-userName">...</div>
+          <div class="vf-small vf-muted" style="margin-top: 10px">
+            Having trouble? Make sure your Twitch app redirect URLs include
+            <span class="vf-code">/callback.html</span>.
           </div>
-        </header>
+        </div>
 
-        <aside id="vf-sidenav" class="vf-sidenav" aria-hidden="true">
-          <div class="vf-sidenavHeader">
-            <div class="vf-brandSmall">
-              <div class="vf-brandMarkSmall" aria-hidden="true">VF</div>
-              <div>
-                <div class="vf-sidenavTitle">Menu</div>
-                <div class="vf-sidenavSub" id="vf-sidenavSub">Not signed in</div>
-              </div>
-            </div>
-            <button id="vf-closeMenuBtn" class="vf-iconBtn" aria-label="Close menu" title="Close">
-              <span aria-hidden="true">✕</span>
-            </button>
-          </div>
-
-          <nav class="vf-nav">
-            <a class="vf-navItem" href="#home" data-route="home">
-              <span class="vf-navIcon" aria-hidden="true">🏠</span>
-              <span>Home</span>
-            </a>
-
-            <a class="vf-navItem" href="#garage" data-route="garage">
-              <span class="vf-navIcon" aria-hidden="true">🛠️</span>
-              <span>Garage</span>
-            </a>
-
-            <a class="vf-navItem" href="#character" data-route="character">
-              <span class="vf-navIcon" aria-hidden="true">🧑‍🎨</span>
-              <span>Character Creator</span>
-              <span class="vf-pill">Soon</span>
-            </a>
-
-            <button id="vf-logoutBtn" class="vf-navItem vf-navItemButton" type="button">
-              <span class="vf-navIcon" aria-hidden="true">🚪</span>
-              <span>Logout</span>
-            </button>
-          </nav>
-
-          <div class="vf-sidenavFooter">
-            <div class="vf-small vf-muted">
-              API healthcheck: <a class="vf-link" href="/healthcheck" target="_blank" rel="noopener">/healthcheck</a>
-            </div>
-          </div>
-        </aside>
-
-        <div id="vf-backdrop" class="vf-backdrop" hidden></div>
-
-        <main id="vf-main" class="vf-main" tabindex="-1">
-          <!-- content injected by app.js -->
-        </main>
-
-        <div id="vf-toast" class="vf-toast" hidden></div>
-      </section>
+        <div id="vf-loginError" class="vf-alert vf-alertError" hidden></div>
+      </div>
     </div>
   </body>
 </html>

@@ -477,3 +477,196 @@ a { color: inherit; }
     font-size: 16px;
   }
 }
+
+
+/* ---------- MULTI-PAGE ADDITIONS ---------- */
+
+.vf-menuLinks {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.vf-menuLinkCard {
+  display: block;
+  text-decoration: none;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+}
+
+.vf-menuLinkCard:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.14);
+}
+
+.vf-cardTitle {
+  font-weight: 900;
+  font-size: 15px;
+}
+
+.vf-cardSub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ---------- GARAGE LAYOUT ---------- */
+
+.vf-garageLayout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+@media (min-width: 980px) {
+  .vf-garageLayout {
+    grid-template-columns: 1.2fr 0.8fr;
+    align-items: start;
+  }
+}
+
+.vf-gridFixed {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.vf-vehicleTile {
+  position: relative;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  gap: 10px;
+  align-items: center;
+  min-height: 68px;
+}
+
+.vf-vehicleTile:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.14);
+}
+
+.vf-vehicleTile.is-selected {
+  border-color: rgba(123, 97, 255, 0.45);
+  background: rgba(123, 97, 255, 0.14);
+}
+
+.vf-tileThumb {
+  width: 54px;
+  height: 54px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.10);
+  display: grid;
+  place-items: center;
+}
+
+.vf-tileImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.vf-tileInfo {
+  min-width: 0;
+}
+
+.vf-tileId {
+  font-size: 11px;
+  color: var(--muted2);
+  margin-top: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vf-controlsGrid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: end;
+}
+
+.vf-field {
+  display: grid;
+  gap: 6px;
+}
+
+.vf-fieldLabel {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.vf-inputSmall {
+  width: 100px;
+  max-width: 140px;
+  padding: 10px 10px;
+}
+
+.vf-pager {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vf-btnTiny {
+  padding: 9px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* ---------- PREVIEW ---------- */
+
+.vf-previewViewport {
+  margin-top: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.25);
+  height: 260px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  perspective: 900px;
+  touch-action: none; /* allow pointer drag rotation */
+}
+
+.vf-previewImg {
+  width: 92%;
+  height: 92%;
+  object-fit: contain;
+  transform: rotateY(var(--vf-rotY, 0deg)) rotateZ(var(--vf-rotZ, 0deg));
+  transform-style: preserve-3d;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.vf-previewHint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.vf-previewControls {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Make menu cards two columns on wider screens */
+@media (min-width: 720px) {
+  .vf-menuLinks {
+    grid-template-columns: 1fr 1fr;
+  }
+}
