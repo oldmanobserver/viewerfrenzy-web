@@ -1,29 +1,25 @@
-import { jsonResponse } from "../_lib/http.js";
-import { requireTwitchUser } from "../_lib/twitchAuth.js";
-import { isVipUser } from "../_lib/vips.js";
-import { isSubscribedToBroadcaster } from "../_lib/subscriptions.js";
+// functions/api/v1/access.js
+import { handleOptions } from "../../_lib/cors.js";
+import { jsonResponse } from "../../_lib/response.js";
+import { requireWebsiteUser } from "../../_lib/twitchAuth.js";
 
-export async function onRequest({ request, env }) {
-  // CORS/OPTIONS if you use it
-  // const opt = handleOptions(request); if (opt) return opt;
+export async function onRequest(context) {
+  const { request } = context;
 
-  const user = await requireTwitchUser(request, env);
+  const opt = handleOptions(request);
+  if (opt) return opt;
 
-  // VIP bypass
-  const vip = await isVipUser(user.login, env, request);
-  if (vip) return jsonResponse(request, { allowed: true, reason: "vip" }, 200);
+  // This already enforces:
+  // - VIP allowlist (vips.txt)
+  // - Subscriber-to-broadcaster check (using broadcaster tokens)
+  // - Friendly 403 message that includes VF_TWITCH_BROADCASTER_LOGIN
+  // - 500 if VF_TWITCH_BROADCASTER_LOGIN is missing (after your earlier edits)
+  const auth = await requireWebsiteUser(context);
+  if (!auth.ok) return auth.response;
 
-  const broadcasterLogin = (env.VF_TWITCH_BROADCASTER_LOGIN || "").toLowerCase();
-  const ok = await isSubscribedToBroadcaster(user.id, env);
-
-  if (ok) return jsonResponse(request, { allowed: true, reason: "sub" }, 200);
-
-  return jsonResponse(
-    request,
-    {
-      allowed: false,
-      message: `Access is currently restricted during alpha/beta. To use the website, please subscribe to ${broadcasterLogin} on Twitch to get access.`,
-    },
-    403
-  );
+  return jsonResponse(request, {
+    ok: true,
+    allowed: true,
+    reason: auth?.access?.reason || "allowed",
+  });
 }
