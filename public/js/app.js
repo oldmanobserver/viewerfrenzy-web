@@ -119,7 +119,7 @@ async function init() {
   if ((me?.login || "").toLowerCase() === "oldmanobserver") {
     try {
       const resp = await fetch("/api/v1/admin/twitch/status", {
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { Authorization: `Bearer ${session.accessToken || session.access_token}` },
       });
       if (resp.ok) {
         const st = await resp.json();

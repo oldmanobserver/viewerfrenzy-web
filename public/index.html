@@ -13,10 +13,6 @@
 
     <link rel="stylesheet" href="/styles/app.css" />
 
-    <!--
-      CONFIG
-      Create /public/config.js (see /public/config.example.js) and set your Twitch Client ID.
-    -->
     <script src="/config.js" defer></script>
     <script type="module" src="/js/index-page.js" defer></script>
   </head>
@@ -42,11 +38,6 @@
           </button>
 
           <div id="vf-loginStatus" class="vf-small vf-muted" style="margin-top: 10px" hidden></div>
-
-          <div class="vf-small vf-muted" style="margin-top: 10px">
-            Having trouble? Make sure your Twitch app redirect URLs include
-            <span class="vf-code">/callback.html</span>.
-          </div>
         </div>
 
         <div id="vf-loginError" class="vf-alert vf-alertError" hidden></div>
