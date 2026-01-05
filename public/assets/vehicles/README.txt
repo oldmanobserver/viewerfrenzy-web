@@ -17,3 +17,4 @@ Examples:
   /assets/vehicles/resort/tube_blue.png
 
 If an image is missing, the site falls back to a generated placeholder graphic.
+
