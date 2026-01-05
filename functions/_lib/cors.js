@@ -28,6 +28,8 @@ export function buildCorsHeaders(request) {
 }
 
 export function handleOptions(request) {
+  if (request.method !== "OPTIONS") return null;
+
   return new Response(null, {
     status: 204,
     headers: buildCorsHeaders(request),
