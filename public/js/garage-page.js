@@ -16,6 +16,95 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
+// --- Preview auto-centering ---
+//
+// The exported vehicle PNGs are square (e.g., 1024×1024) with transparency.
+// Some models have uneven transparent padding, so the vehicle can *look* like
+// it's sitting low in the preview viewport.
+//
+// We fix that by scanning the image's alpha channel, computing the bounding box
+// of non-transparent pixels, and then applying a translateY to visually center it.
+//
+// Performance: We run this ONLY for the selected preview image (not every tile).
+function autoCenterPreviewImage(imgEl) {
+  if (!imgEl) return;
+
+  // Reset each time so we don't keep stale offsets.
+  imgEl.style.setProperty("--vf-previewShiftY", "0px");
+
+  const w = imgEl.naturalWidth || 0;
+  const h = imgEl.naturalHeight || 0;
+  if (w <= 0 || h <= 0) return;
+
+  // Avoid huge work if something unexpected happens.
+  if (w > 4096 || h > 4096) return;
+
+  // Canvas must be same-origin. Your images are served from the same domain.
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return;
+
+  try {
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(imgEl, 0, 0);
+  } catch {
+    // If the canvas becomes tainted for any reason, just leave centered at 0.
+    return;
+  }
+
+  let imgData;
+  try {
+    imgData = ctx.getImageData(0, 0, w, h);
+  } catch {
+    return;
+  }
+
+  const data = imgData.data;
+  const alphaThreshold = 8; // 0..255 (ignore near-transparent edges)
+
+  let minY = h;
+  let maxY = -1;
+
+  // We only need Y bounds for vertical centering.
+  // Scan rows; break early where possible.
+  for (let y = 0; y < h; y++) {
+    const rowStart = y * w * 4;
+    for (let x = 0; x < w; x++) {
+      const a = data[rowStart + x * 4 + 3];
+      if (a > alphaThreshold) {
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+        break;
+      }
+    }
+  }
+
+  if (maxY < 0 || minY >= h) {
+    // Fully transparent image (shouldn't happen). Keep shift 0.
+    return;
+  }
+
+  // Compute how far the content center is from the image center.
+  const contentCenterY = (minY + maxY) * 0.5;
+  const imageCenterY = h * 0.5;
+  const dyImagePx = contentCenterY - imageCenterY; // + means content is below center
+
+  // Convert image-space pixels into CSS pixels based on how big the <img> is rendered.
+  const rect = imgEl.getBoundingClientRect();
+  const renderedH = rect.height || 0;
+  if (renderedH <= 0) return;
+
+  const scaleY = renderedH / h;
+  const shiftCssPx = -dyImagePx * scaleY;
+
+  // Clamp to something sane so we don't shift wildly if a model has a bad mesh/bounds.
+  const clamped = Math.max(-80, Math.min(80, shiftCssPx));
+  imgEl.style.setProperty("--vf-previewShiftY", `${clamped.toFixed(2)}px`);
+}
+
 function preferredRandomId(type) {
   // Matches your Unity GarageUIController convention:
   // - resort random is tube_palette
@@ -424,6 +513,13 @@ async function init() {
 
     const displayName = opt?.displayName || (isRandomPlaceholderId(selId) ? "Random (seeded)" : selId);
     elSelectedLabel.textContent = `Selected: ${displayName} (${selId})`;
+
+    // When the preview image finishes loading, compute an alpha-bounds based
+    // translateY so the visible vehicle is visually centered.
+    elPreviewImg.onload = () => {
+      // Wait one frame so layout is up-to-date.
+      requestAnimationFrame(() => autoCenterPreviewImage(elPreviewImg));
+    };
 
     applyVehicleImage(elPreviewImg, {
       type: state.type,
