@@ -1,7 +1,7 @@
 // functions/api/v1/vehicle-defaults/[type]/bulk.js
 import { handleOptions } from "../../../../_lib/cors.js";
 import { jsonResponse } from "../../../../_lib/response.js";
-import { requireTwitchUser } from "../../../../_lib/twitchAuth.js";
+import { requireWebsiteUser } from "../../../../_lib/twitchAuth.js";
 
 function getKvForType(env, type) {
   const t = (type || "").toLowerCase();
@@ -23,7 +23,7 @@ export async function onRequest(context) {
 
   if (request.method === "OPTIONS") return handleOptions(request);
 
-  const auth = await requireTwitchUser(context);
+  const auth = await requireWebsiteUser(context);
   if (!auth.ok) return auth.response;
 
   const type = params.type;

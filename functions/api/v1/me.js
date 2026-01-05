@@ -1,7 +1,7 @@
 // functions/api/v1/me.js
 import { handleOptions } from "../../_lib/cors.js";
 import { jsonResponse } from "../../_lib/response.js";
-import { requireTwitchUser } from "../../_lib/twitchAuth.js";
+import { requireWebsiteUser } from "../../_lib/twitchAuth.js";
 
 function normalizeUser(authUser) {
   const helix = authUser?.helixUser || null;
@@ -30,7 +30,7 @@ export async function onRequest(context) {
     return jsonResponse(request, { error: "method_not_allowed" }, 405);
   }
 
-  const auth = await requireTwitchUser(context);
+  const auth = await requireWebsiteUser(context);
   if (!auth.ok) return auth.response;
 
   return jsonResponse(request, {
