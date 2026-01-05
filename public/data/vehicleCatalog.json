@@ -1,0 +1,4415 @@
+{
+  "version": 1,
+  "generatedUtc": "2026-01-04T13:31:48.313025+00:00",
+  "types": {
+    "ground": {
+      "label": "Ground",
+      "emoji": "\ud83d\ude97",
+      "options": [
+        {
+          "id": "__random__",
+          "displayName": "Random (seeded)"
+        }
+      ],
+      "note": "MVP: add your Ground vehicle options here so IDs match your Unity prefabs (RacerVisual.vehiclePrefabs)."
+    },
+    "resort": {
+      "label": "Resort",
+      "emoji": "\ud83d\udedf",
+      "options": [
+        {
+          "id": "tube_palette",
+          "displayName": "Tube: Random palette (seeded)"
+        },
+        {
+          "id": "tube_color_0",
+          "displayName": "Tube: Color 0"
+        },
+        {
+          "id": "tube_color_1",
+          "displayName": "Tube: Color 1"
+        },
+        {
+          "id": "tube_color_2",
+          "displayName": "Tube: Color 2"
+        },
+        {
+          "id": "tube_color_3",
+          "displayName": "Tube: Color 3"
+        },
+        {
+          "id": "tube_color_4",
+          "displayName": "Tube: Color 4"
+        },
+        {
+          "id": "tube_color_5",
+          "displayName": "Tube: Color 5"
+        },
+        {
+          "id": "tube_color_6",
+          "displayName": "Tube: Color 6"
+        },
+        {
+          "id": "tube_color_7",
+          "displayName": "Tube: Color 7"
+        }
+      ],
+      "note": "Resort defaults currently map to lazy-river tube colors (matches Unity Garage)."
+    },
+    "space": {
+      "label": "Space",
+      "emoji": "\ud83d\ude80",
+      "options": [
+        {
+          "id": "__random__",
+          "displayName": "Random (seeded)"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle1",
+          "displayName": "AstroEagle1",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle10",
+          "displayName": "AstroEagle10",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle11",
+          "displayName": "AstroEagle11",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle12",
+          "displayName": "AstroEagle12",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle13",
+          "displayName": "AstroEagle13",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle14",
+          "displayName": "AstroEagle14",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle15",
+          "displayName": "AstroEagle15",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle16",
+          "displayName": "AstroEagle16",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle17",
+          "displayName": "AstroEagle17",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle18",
+          "displayName": "AstroEagle18",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle19",
+          "displayName": "AstroEagle19",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle2",
+          "displayName": "AstroEagle2",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle20",
+          "displayName": "AstroEagle20",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle3",
+          "displayName": "AstroEagle3",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle4",
+          "displayName": "AstroEagle4",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle5",
+          "displayName": "AstroEagle5",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle6",
+          "displayName": "AstroEagle6",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle7",
+          "displayName": "AstroEagle7",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle8",
+          "displayName": "AstroEagle8",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_AstroEagle_AstroEagle9",
+          "displayName": "AstroEagle9",
+          "pack": "StarSparrow",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark1",
+          "displayName": "CosmicShark1",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark10",
+          "displayName": "CosmicShark10",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark11",
+          "displayName": "CosmicShark11",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark12",
+          "displayName": "CosmicShark12",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark13",
+          "displayName": "CosmicShark13",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark14",
+          "displayName": "CosmicShark14",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark15",
+          "displayName": "CosmicShark15",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark16",
+          "displayName": "CosmicShark16",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark17",
+          "displayName": "CosmicShark17",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark18",
+          "displayName": "CosmicShark18",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark19",
+          "displayName": "CosmicShark19",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark2",
+          "displayName": "CosmicShark2",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark20",
+          "displayName": "CosmicShark20",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark3",
+          "displayName": "CosmicShark3",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark4",
+          "displayName": "CosmicShark4",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark5",
+          "displayName": "CosmicShark5",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark6",
+          "displayName": "CosmicShark6",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark7",
+          "displayName": "CosmicShark7",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark8",
+          "displayName": "CosmicShark8",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CosmicShark_CosmicShark9",
+          "displayName": "CosmicShark9",
+          "pack": "StarSparrow",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar1",
+          "displayName": "CraizanStar1",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar10",
+          "displayName": "CraizanStar10",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar11",
+          "displayName": "CraizanStar11",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar12",
+          "displayName": "CraizanStar12",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar13",
+          "displayName": "CraizanStar13",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar14",
+          "displayName": "CraizanStar14",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar15",
+          "displayName": "CraizanStar15",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar16",
+          "displayName": "CraizanStar16",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar17",
+          "displayName": "CraizanStar17",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar18",
+          "displayName": "CraizanStar18",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar19",
+          "displayName": "CraizanStar19",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar2",
+          "displayName": "CraizanStar2",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar20",
+          "displayName": "CraizanStar20",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar3",
+          "displayName": "CraizanStar3",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar4",
+          "displayName": "CraizanStar4",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar5",
+          "displayName": "CraizanStar5",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar6",
+          "displayName": "CraizanStar6",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar7",
+          "displayName": "CraizanStar7",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar8",
+          "displayName": "CraizanStar8",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_CraizanStar_CraizanStar9",
+          "displayName": "CraizanStar9",
+          "pack": "StarSparrow",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger1",
+          "displayName": "ForceBadger1",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger10",
+          "displayName": "ForceBadger10",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger11",
+          "displayName": "ForceBadger11",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger12",
+          "displayName": "ForceBadger12",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger13",
+          "displayName": "ForceBadger13",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger14",
+          "displayName": "ForceBadger14",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger15",
+          "displayName": "ForceBadger15",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger16",
+          "displayName": "ForceBadger16",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger17",
+          "displayName": "ForceBadger17",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger18",
+          "displayName": "ForceBadger18",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger19",
+          "displayName": "ForceBadger19",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger2",
+          "displayName": "ForceBadger2",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger20",
+          "displayName": "ForceBadger20",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger3",
+          "displayName": "ForceBadger3",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger4",
+          "displayName": "ForceBadger4",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger5",
+          "displayName": "ForceBadger5",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger6",
+          "displayName": "ForceBadger6",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger7_1",
+          "displayName": "ForceBadger7 1",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger8",
+          "displayName": "ForceBadger8",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_ForceBadger_ForceBadger9",
+          "displayName": "ForceBadger9",
+          "pack": "StarSparrow",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard1",
+          "displayName": "GalacticLeopard1",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard10",
+          "displayName": "GalacticLeopard10",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard11",
+          "displayName": "GalacticLeopard11",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard12",
+          "displayName": "GalacticLeopard12",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard13",
+          "displayName": "GalacticLeopard13",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard14",
+          "displayName": "GalacticLeopard14",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard15",
+          "displayName": "GalacticLeopard15",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard16",
+          "displayName": "GalacticLeopard16",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard17",
+          "displayName": "GalacticLeopard17",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard18",
+          "displayName": "GalacticLeopard18",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard19",
+          "displayName": "GalacticLeopard19",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard2",
+          "displayName": "GalacticLeopard2",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard20",
+          "displayName": "GalacticLeopard20",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard21",
+          "displayName": "GalacticLeopard21",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard22",
+          "displayName": "GalacticLeopard22",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard23",
+          "displayName": "GalacticLeopard23",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard24",
+          "displayName": "GalacticLeopard24",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard25",
+          "displayName": "GalacticLeopard25",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard26",
+          "displayName": "GalacticLeopard26",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard27",
+          "displayName": "GalacticLeopard27",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard28",
+          "displayName": "GalacticLeopard28",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard29",
+          "displayName": "GalacticLeopard29",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard3",
+          "displayName": "GalacticLeopard3",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard30",
+          "displayName": "GalacticLeopard30",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard31",
+          "displayName": "GalacticLeopard31",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard32",
+          "displayName": "GalacticLeopard32",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard33",
+          "displayName": "GalacticLeopard33",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard34",
+          "displayName": "GalacticLeopard34",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard35",
+          "displayName": "GalacticLeopard35",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard36",
+          "displayName": "GalacticLeopard36",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard37",
+          "displayName": "GalacticLeopard37",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard38",
+          "displayName": "GalacticLeopard38",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard39",
+          "displayName": "GalacticLeopard39",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard4",
+          "displayName": "GalacticLeopard4",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard40",
+          "displayName": "GalacticLeopard40",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard5",
+          "displayName": "GalacticLeopard5",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard6",
+          "displayName": "GalacticLeopard6",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard7",
+          "displayName": "GalacticLeopard7",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard8",
+          "displayName": "GalacticLeopard8",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticLeopard_GalacticLeopard9",
+          "displayName": "GalacticLeopard9",
+          "pack": "StarSparrow",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto1",
+          "displayName": "GalacticOkamoto1",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto10",
+          "displayName": "GalacticOkamoto10",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto11",
+          "displayName": "GalacticOkamoto11",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto12",
+          "displayName": "GalacticOkamoto12",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto13",
+          "displayName": "GalacticOkamoto13",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto14",
+          "displayName": "GalacticOkamoto14",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto15",
+          "displayName": "GalacticOkamoto15",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto16",
+          "displayName": "GalacticOkamoto16",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto17",
+          "displayName": "GalacticOkamoto17",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto18",
+          "displayName": "GalacticOkamoto18",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto19",
+          "displayName": "GalacticOkamoto19",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto2",
+          "displayName": "GalacticOkamoto2",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto20",
+          "displayName": "GalacticOkamoto20",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto21",
+          "displayName": "GalacticOkamoto21",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto22",
+          "displayName": "GalacticOkamoto22",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto23",
+          "displayName": "GalacticOkamoto23",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto24",
+          "displayName": "GalacticOkamoto24",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto25",
+          "displayName": "GalacticOkamoto25",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto26",
+          "displayName": "GalacticOkamoto26",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto27",
+          "displayName": "GalacticOkamoto27",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto28",
+          "displayName": "GalacticOkamoto28",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto29",
+          "displayName": "GalacticOkamoto29",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto3",
+          "displayName": "GalacticOkamoto3",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto30",
+          "displayName": "GalacticOkamoto30",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto4",
+          "displayName": "GalacticOkamoto4",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto5",
+          "displayName": "GalacticOkamoto5",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto6",
+          "displayName": "GalacticOkamoto6",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto7",
+          "displayName": "GalacticOkamoto7",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto8",
+          "displayName": "GalacticOkamoto8",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalacticOkamoto_GalacticOkamoto9",
+          "displayName": "GalacticOkamoto9",
+          "pack": "StarSparrow",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor01",
+          "displayName": "GalaxyRaptor01",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor02",
+          "displayName": "GalaxyRaptor02",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor03",
+          "displayName": "GalaxyRaptor03",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor04",
+          "displayName": "GalaxyRaptor04",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor05",
+          "displayName": "GalaxyRaptor05",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor06",
+          "displayName": "GalaxyRaptor06",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor07",
+          "displayName": "GalaxyRaptor07",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor08",
+          "displayName": "GalaxyRaptor08",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor09",
+          "displayName": "GalaxyRaptor09",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor10",
+          "displayName": "GalaxyRaptor10",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor11",
+          "displayName": "GalaxyRaptor11",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor12",
+          "displayName": "GalaxyRaptor12",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor13",
+          "displayName": "GalaxyRaptor13",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor14",
+          "displayName": "GalaxyRaptor14",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor15",
+          "displayName": "GalaxyRaptor15",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor16",
+          "displayName": "GalaxyRaptor16",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor17",
+          "displayName": "GalaxyRaptor17",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor18",
+          "displayName": "GalaxyRaptor18",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor19",
+          "displayName": "GalaxyRaptor19",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_GalaxyRaptor_GalaxyRaptor20",
+          "displayName": "GalaxyRaptor20",
+          "pack": "StarSparrow",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon1",
+          "displayName": "HyperFalcon1",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon10",
+          "displayName": "HyperFalcon10",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon11",
+          "displayName": "HyperFalcon11",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon12",
+          "displayName": "HyperFalcon12",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon13",
+          "displayName": "HyperFalcon13",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon14",
+          "displayName": "HyperFalcon14",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon15",
+          "displayName": "HyperFalcon15",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon16",
+          "displayName": "HyperFalcon16",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon17",
+          "displayName": "HyperFalcon17",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon18",
+          "displayName": "HyperFalcon18",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon19",
+          "displayName": "HyperFalcon19",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon2",
+          "displayName": "HyperFalcon2",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon20",
+          "displayName": "HyperFalcon20",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon3",
+          "displayName": "HyperFalcon3",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon4",
+          "displayName": "HyperFalcon4",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon5",
+          "displayName": "HyperFalcon5",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon6",
+          "displayName": "HyperFalcon6",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon7",
+          "displayName": "HyperFalcon7",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon8",
+          "displayName": "HyperFalcon8",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_HyperFalcon_HyperFalcon9",
+          "displayName": "HyperFalcon9",
+          "pack": "StarSparrow",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox1",
+          "displayName": "LightFox1",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox10",
+          "displayName": "LightFox10",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox11",
+          "displayName": "LightFox11",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox12",
+          "displayName": "LightFox12",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox13",
+          "displayName": "LightFox13",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox14",
+          "displayName": "LightFox14",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox15",
+          "displayName": "LightFox15",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox16",
+          "displayName": "LightFox16",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox17",
+          "displayName": "LightFox17",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox18",
+          "displayName": "LightFox18",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox19",
+          "displayName": "LightFox19",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox2",
+          "displayName": "LightFox2",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox20",
+          "displayName": "LightFox20",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox3",
+          "displayName": "LightFox3",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox4",
+          "displayName": "LightFox4",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox5",
+          "displayName": "LightFox5",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox6",
+          "displayName": "LightFox6",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox7",
+          "displayName": "LightFox7",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox8",
+          "displayName": "LightFox8",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_LightFox_LightFox9",
+          "displayName": "LightFox9",
+          "pack": "StarSparrow",
+          "category": "LightFox"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis1",
+          "displayName": "MeteorMantis1",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis10",
+          "displayName": "MeteorMantis10",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis11",
+          "displayName": "MeteorMantis11",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis12",
+          "displayName": "MeteorMantis12",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis13",
+          "displayName": "MeteorMantis13",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis14",
+          "displayName": "MeteorMantis14",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis15",
+          "displayName": "MeteorMantis15",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis16",
+          "displayName": "MeteorMantis16",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis17",
+          "displayName": "MeteorMantis17",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis18",
+          "displayName": "MeteorMantis18",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis19",
+          "displayName": "MeteorMantis19",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis2",
+          "displayName": "MeteorMantis2",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis20",
+          "displayName": "MeteorMantis20",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis3",
+          "displayName": "MeteorMantis3",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis4",
+          "displayName": "MeteorMantis4",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis5",
+          "displayName": "MeteorMantis5",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis6",
+          "displayName": "MeteorMantis6",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis7",
+          "displayName": "MeteorMantis7",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis8",
+          "displayName": "MeteorMantis8",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_MeteorMantis_MeteorMantis9",
+          "displayName": "MeteorMantis9",
+          "pack": "StarSparrow",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye1",
+          "displayName": "NightAye1",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye10",
+          "displayName": "NightAye10",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye11",
+          "displayName": "NightAye11",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye12",
+          "displayName": "NightAye12",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye13",
+          "displayName": "NightAye13",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye14",
+          "displayName": "NightAye14",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye15",
+          "displayName": "NightAye15",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye16",
+          "displayName": "NightAye16",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye17",
+          "displayName": "NightAye17",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye18",
+          "displayName": "NightAye18",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye19",
+          "displayName": "NightAye19",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye2",
+          "displayName": "NightAye2",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye20",
+          "displayName": "NightAye20",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye3",
+          "displayName": "NightAye3",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye4",
+          "displayName": "NightAye4",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye5",
+          "displayName": "NightAye5",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye6",
+          "displayName": "NightAye6",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye7",
+          "displayName": "NightAye7",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye8",
+          "displayName": "NightAye8",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_NightAye_NightAye9",
+          "displayName": "NightAye9",
+          "pack": "StarSparrow",
+          "category": "NightAye"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy1",
+          "displayName": "ProtonLegacy1",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy10",
+          "displayName": "ProtonLegacy10",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy11",
+          "displayName": "ProtonLegacy11",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy12",
+          "displayName": "ProtonLegacy12",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy13",
+          "displayName": "ProtonLegacy13",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy14",
+          "displayName": "ProtonLegacy14",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy15",
+          "displayName": "ProtonLegacy15",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy16",
+          "displayName": "ProtonLegacy16",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy17",
+          "displayName": "ProtonLegacy17",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy18",
+          "displayName": "ProtonLegacy18",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy19",
+          "displayName": "ProtonLegacy19",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy2",
+          "displayName": "ProtonLegacy2",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy20",
+          "displayName": "ProtonLegacy20",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy3",
+          "displayName": "ProtonLegacy3",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy4",
+          "displayName": "ProtonLegacy4",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy5",
+          "displayName": "ProtonLegacy5",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy6",
+          "displayName": "ProtonLegacy6",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy7",
+          "displayName": "ProtonLegacy7",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy8",
+          "displayName": "ProtonLegacy8",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_ProtonLegacy_ProtonLegacy9",
+          "displayName": "ProtonLegacy9",
+          "pack": "StarSparrow",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur1",
+          "displayName": "SpaceExcalibur1",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur10",
+          "displayName": "SpaceExcalibur10",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur11",
+          "displayName": "SpaceExcalibur11",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur12",
+          "displayName": "SpaceExcalibur12",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur13",
+          "displayName": "SpaceExcalibur13",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur14",
+          "displayName": "SpaceExcalibur14",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur15",
+          "displayName": "SpaceExcalibur15",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur16",
+          "displayName": "SpaceExcalibur16",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur17",
+          "displayName": "SpaceExcalibur17",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur18",
+          "displayName": "SpaceExcalibur18",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur19",
+          "displayName": "SpaceExcalibur19",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur2",
+          "displayName": "SpaceExcalibur2",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur20",
+          "displayName": "SpaceExcalibur20",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur3",
+          "displayName": "SpaceExcalibur3",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur4",
+          "displayName": "SpaceExcalibur4",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur5",
+          "displayName": "SpaceExcalibur5",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur6",
+          "displayName": "SpaceExcalibur6",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur7",
+          "displayName": "SpaceExcalibur7",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur8",
+          "displayName": "SpaceExcalibur8",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceExcalibur_SpaceExcalibur9",
+          "displayName": "SpaceExcalibur9",
+          "pack": "StarSparrow",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "StarSparrow_SpaceSphinx_SpaceSphinx1",
+          "displayName": "SpaceSphinx1",
+          "pack": "StarSparrow",
+          "category": "SpaceSphinx"
+        },
+        {
+          "id": "StarSparrow_SpaceSphinx_SpaceSphinx2",
+          "displayName": "SpaceSphinx2",
+          "pack": "StarSparrow",
+          "category": "SpaceSphinx"
+        },
+        {
+          "id": "StarSparrow_SpaceSphinx_SpaceSphinx3",
+          "displayName": "SpaceSphinx3",
+          "pack": "StarSparrow",
+          "category": "SpaceSphinx"
+        },
+        {
+          "id": "StarSparrow_SpaceSphinx_SpaceSphinx4",
+          "displayName": "SpaceSphinx4",
+          "pack": "StarSparrow",
+          "category": "SpaceSphinx"
+        },
+        {
+          "id": "StarSparrow_SpaceSphinx_SpaceSphinx5",
+          "displayName": "SpaceSphinx5",
+          "pack": "StarSparrow",
+          "category": "SpaceSphinx"
+        },
+        {
+          "id": "StarSparrow_SpaceSphinx_SpaceSphinx6",
+          "displayName": "SpaceSphinx6",
+          "pack": "StarSparrow",
+          "category": "SpaceSphinx"
+        },
+        {
+          "id": "StarSparrow_SpaceSphinx_SpaceSphinx7",
+          "displayName": "SpaceSphinx7",
+          "pack": "StarSparrow",
+          "category": "SpaceSphinx"
+        },
+        {
+          "id": "StarSparrow_SpaceSphinx_SpaceSphinx8",
+          "displayName": "SpaceSphinx8",
+          "pack": "StarSparrow",
+          "category": "SpaceSphinx"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce1",
+          "displayName": "StarForce1",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce10",
+          "displayName": "StarForce10",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce11",
+          "displayName": "StarForce11",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce12",
+          "displayName": "StarForce12",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce13",
+          "displayName": "StarForce13",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce14",
+          "displayName": "StarForce14",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce15",
+          "displayName": "StarForce15",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce16",
+          "displayName": "StarForce16",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce17",
+          "displayName": "StarForce17",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce18",
+          "displayName": "StarForce18",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce19",
+          "displayName": "StarForce19",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce2",
+          "displayName": "StarForce2",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce20",
+          "displayName": "StarForce20",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce3",
+          "displayName": "StarForce3",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce4",
+          "displayName": "StarForce4",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce5",
+          "displayName": "StarForce5",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce6",
+          "displayName": "StarForce6",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce7",
+          "displayName": "StarForce7",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce8",
+          "displayName": "StarForce8",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarForce_StarForce9",
+          "displayName": "StarForce9",
+          "pack": "StarSparrow",
+          "category": "StarForce"
+        },
+        {
+          "id": "StarSparrow_StarSparrow1_prefab_StarSparrow1",
+          "displayName": "StarSparrow1",
+          "pack": "StarSparrow",
+          "category": "StarSparrow1.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow10_prefab_StarSparrow10",
+          "displayName": "StarSparrow10",
+          "pack": "StarSparrow",
+          "category": "StarSparrow10.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow11_prefab_StarSparrow11",
+          "displayName": "StarSparrow11",
+          "pack": "StarSparrow",
+          "category": "StarSparrow11.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow12_prefab_StarSparrow12",
+          "displayName": "StarSparrow12",
+          "pack": "StarSparrow",
+          "category": "StarSparrow12.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow13_prefab_StarSparrow13",
+          "displayName": "StarSparrow13",
+          "pack": "StarSparrow",
+          "category": "StarSparrow13.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow14_prefab_StarSparrow14",
+          "displayName": "StarSparrow14",
+          "pack": "StarSparrow",
+          "category": "StarSparrow14.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow15_prefab_StarSparrow15",
+          "displayName": "StarSparrow15",
+          "pack": "StarSparrow",
+          "category": "StarSparrow15.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow16_prefab_StarSparrow16",
+          "displayName": "StarSparrow16",
+          "pack": "StarSparrow",
+          "category": "StarSparrow16.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow17_prefab_StarSparrow17",
+          "displayName": "StarSparrow17",
+          "pack": "StarSparrow",
+          "category": "StarSparrow17.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow18_prefab_StarSparrow18",
+          "displayName": "StarSparrow18",
+          "pack": "StarSparrow",
+          "category": "StarSparrow18.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow19_prefab_StarSparrow19",
+          "displayName": "StarSparrow19",
+          "pack": "StarSparrow",
+          "category": "StarSparrow19.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow2_prefab_StarSparrow2",
+          "displayName": "StarSparrow2",
+          "pack": "StarSparrow",
+          "category": "StarSparrow2.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow20_prefab_StarSparrow20",
+          "displayName": "StarSparrow20",
+          "pack": "StarSparrow",
+          "category": "StarSparrow20.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow3_prefab_StarSparrow3",
+          "displayName": "StarSparrow3",
+          "pack": "StarSparrow",
+          "category": "StarSparrow3.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow4_prefab_StarSparrow4",
+          "displayName": "StarSparrow4",
+          "pack": "StarSparrow",
+          "category": "StarSparrow4.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow5_prefab_StarSparrow5",
+          "displayName": "StarSparrow5",
+          "pack": "StarSparrow",
+          "category": "StarSparrow5.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow6_prefab_StarSparrow6",
+          "displayName": "StarSparrow6",
+          "pack": "StarSparrow",
+          "category": "StarSparrow6.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow7_prefab_StarSparrow7",
+          "displayName": "StarSparrow7",
+          "pack": "StarSparrow",
+          "category": "StarSparrow7.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow8_prefab_StarSparrow8",
+          "displayName": "StarSparrow8",
+          "pack": "StarSparrow",
+          "category": "StarSparrow8.prefab"
+        },
+        {
+          "id": "StarSparrow_StarSparrow9_prefab_StarSparrow9",
+          "displayName": "StarSparrow9",
+          "pack": "StarSparrow",
+          "category": "StarSparrow9.prefab"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx1",
+          "displayName": "StriderOx1",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx10",
+          "displayName": "StriderOx10",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx11",
+          "displayName": "StriderOx11",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx12",
+          "displayName": "StriderOx12",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx13",
+          "displayName": "StriderOx13",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx14",
+          "displayName": "StriderOx14",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx15",
+          "displayName": "StriderOx15",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx16",
+          "displayName": "StriderOx16",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx17",
+          "displayName": "StriderOx17",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx18",
+          "displayName": "StriderOx18",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx19",
+          "displayName": "StriderOx19",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx2",
+          "displayName": "StriderOx2",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx20",
+          "displayName": "StriderOx20",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx3",
+          "displayName": "StriderOx3",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx4",
+          "displayName": "StriderOx4",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx5",
+          "displayName": "StriderOx5",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx6",
+          "displayName": "StriderOx6",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx7",
+          "displayName": "StriderOx7",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx8",
+          "displayName": "StriderOx8",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_StriderOx_StriderOx9",
+          "displayName": "StriderOx9",
+          "pack": "StarSparrow",
+          "category": "StriderOx"
+        },
+        {
+          "id": "StarSparrow_VoidWhale_VoidWhale1",
+          "displayName": "VoidWhale1",
+          "pack": "StarSparrow",
+          "category": "VoidWhale"
+        },
+        {
+          "id": "StarSparrow_VoidWhale_VoidWhale2",
+          "displayName": "VoidWhale2",
+          "pack": "StarSparrow",
+          "category": "VoidWhale"
+        },
+        {
+          "id": "StarSparrow_VoidWhale_VoidWhale3",
+          "displayName": "VoidWhale3",
+          "pack": "StarSparrow",
+          "category": "VoidWhale"
+        },
+        {
+          "id": "StarSparrow_VoidWhale_VoidWhale4",
+          "displayName": "VoidWhale4",
+          "pack": "StarSparrow",
+          "category": "VoidWhale"
+        },
+        {
+          "id": "StarSparrow_VoidWhale_VoidWhale5",
+          "displayName": "VoidWhale5",
+          "pack": "StarSparrow",
+          "category": "VoidWhale"
+        },
+        {
+          "id": "StarSparrow_VoidWhale_VoidWhale6",
+          "displayName": "VoidWhale6",
+          "pack": "StarSparrow",
+          "category": "VoidWhale"
+        },
+        {
+          "id": "StarSparrow_VoidWhale_VoidWhale7",
+          "displayName": "VoidWhale7",
+          "pack": "StarSparrow",
+          "category": "VoidWhale"
+        },
+        {
+          "id": "StarSparrow_VoidWhale_VoidWhale8",
+          "displayName": "VoidWhale8",
+          "pack": "StarSparrow",
+          "category": "VoidWhale"
+        },
+        {
+          "id": "StarSparrow_VoidWhale_VoidWhale9",
+          "displayName": "VoidWhale9",
+          "pack": "StarSparrow",
+          "category": "VoidWhale"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle1",
+          "displayName": "AstroEagle1",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle10",
+          "displayName": "AstroEagle10",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle11",
+          "displayName": "AstroEagle11",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle12",
+          "displayName": "AstroEagle12",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle13",
+          "displayName": "AstroEagle13",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle14",
+          "displayName": "AstroEagle14",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle15",
+          "displayName": "AstroEagle15",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle16",
+          "displayName": "AstroEagle16",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle17",
+          "displayName": "AstroEagle17",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle18",
+          "displayName": "AstroEagle18",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle19",
+          "displayName": "AstroEagle19",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle2",
+          "displayName": "AstroEagle2",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle20",
+          "displayName": "AstroEagle20",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle3",
+          "displayName": "AstroEagle3",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle4",
+          "displayName": "AstroEagle4",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle5",
+          "displayName": "AstroEagle5",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle6",
+          "displayName": "AstroEagle6",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle7",
+          "displayName": "AstroEagle7",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle8",
+          "displayName": "AstroEagle8",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_AstroEagle_AstroEagle9",
+          "displayName": "AstroEagle9",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "AstroEagle"
+        },
+        {
+          "id": "Ultimate_CombinedSpaceships_CombinedSpaceship1",
+          "displayName": "CombinedSpaceship1",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CombinedSpaceships"
+        },
+        {
+          "id": "Ultimate_CombinedSpaceships_CombinedSpaceship10",
+          "displayName": "CombinedSpaceship10",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CombinedSpaceships"
+        },
+        {
+          "id": "Ultimate_CombinedSpaceships_CombinedSpaceship2",
+          "displayName": "CombinedSpaceship2",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CombinedSpaceships"
+        },
+        {
+          "id": "Ultimate_CombinedSpaceships_CombinedSpaceship3",
+          "displayName": "CombinedSpaceship3",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CombinedSpaceships"
+        },
+        {
+          "id": "Ultimate_CombinedSpaceships_CombinedSpaceship4",
+          "displayName": "CombinedSpaceship4",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CombinedSpaceships"
+        },
+        {
+          "id": "Ultimate_CombinedSpaceships_CombinedSpaceship5",
+          "displayName": "CombinedSpaceship5",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CombinedSpaceships"
+        },
+        {
+          "id": "Ultimate_CombinedSpaceships_CombinedSpaceship6",
+          "displayName": "CombinedSpaceship6",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CombinedSpaceships"
+        },
+        {
+          "id": "Ultimate_CombinedSpaceships_CombinedSpaceship7",
+          "displayName": "CombinedSpaceship7",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CombinedSpaceships"
+        },
+        {
+          "id": "Ultimate_CombinedSpaceships_CombinedSpaceship8",
+          "displayName": "CombinedSpaceship8",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CombinedSpaceships"
+        },
+        {
+          "id": "Ultimate_CombinedSpaceships_CombinedSpaceship9",
+          "displayName": "CombinedSpaceship9",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CombinedSpaceships"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark1",
+          "displayName": "CosmicShark1",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark10",
+          "displayName": "CosmicShark10",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark11",
+          "displayName": "CosmicShark11",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark12",
+          "displayName": "CosmicShark12",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark13",
+          "displayName": "CosmicShark13",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark14",
+          "displayName": "CosmicShark14",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark15",
+          "displayName": "CosmicShark15",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark16",
+          "displayName": "CosmicShark16",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark17",
+          "displayName": "CosmicShark17",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark18",
+          "displayName": "CosmicShark18",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark19",
+          "displayName": "CosmicShark19",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark2",
+          "displayName": "CosmicShark2",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark20",
+          "displayName": "CosmicShark20",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark3",
+          "displayName": "CosmicShark3",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark4",
+          "displayName": "CosmicShark4",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark5",
+          "displayName": "CosmicShark5",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark6",
+          "displayName": "CosmicShark6",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark7",
+          "displayName": "CosmicShark7",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark8",
+          "displayName": "CosmicShark8",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CosmicShark_CosmicShark9",
+          "displayName": "CosmicShark9",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CosmicShark"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar1",
+          "displayName": "CraizanStar1",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar10",
+          "displayName": "CraizanStar10",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar11",
+          "displayName": "CraizanStar11",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar12",
+          "displayName": "CraizanStar12",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar13",
+          "displayName": "CraizanStar13",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar14",
+          "displayName": "CraizanStar14",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar15",
+          "displayName": "CraizanStar15",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar16",
+          "displayName": "CraizanStar16",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar17",
+          "displayName": "CraizanStar17",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar18",
+          "displayName": "CraizanStar18",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar19",
+          "displayName": "CraizanStar19",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar2",
+          "displayName": "CraizanStar2",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar20",
+          "displayName": "CraizanStar20",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar3",
+          "displayName": "CraizanStar3",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar4",
+          "displayName": "CraizanStar4",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar5",
+          "displayName": "CraizanStar5",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar6",
+          "displayName": "CraizanStar6",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar7",
+          "displayName": "CraizanStar7",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar8",
+          "displayName": "CraizanStar8",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_CraizanStar_CraizanStar9",
+          "displayName": "CraizanStar9",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "CraizanStar"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger1",
+          "displayName": "ForceBadger1",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger10",
+          "displayName": "ForceBadger10",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger11",
+          "displayName": "ForceBadger11",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger12",
+          "displayName": "ForceBadger12",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger13",
+          "displayName": "ForceBadger13",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger14",
+          "displayName": "ForceBadger14",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger15",
+          "displayName": "ForceBadger15",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger16",
+          "displayName": "ForceBadger16",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger17",
+          "displayName": "ForceBadger17",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger18",
+          "displayName": "ForceBadger18",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger19",
+          "displayName": "ForceBadger19",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger2",
+          "displayName": "ForceBadger2",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger20",
+          "displayName": "ForceBadger20",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger3",
+          "displayName": "ForceBadger3",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger4",
+          "displayName": "ForceBadger4",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger5",
+          "displayName": "ForceBadger5",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger6",
+          "displayName": "ForceBadger6",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger7",
+          "displayName": "ForceBadger7",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger8",
+          "displayName": "ForceBadger8",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_ForceBadger_ForceBadger9",
+          "displayName": "ForceBadger9",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ForceBadger"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard1",
+          "displayName": "GalacticLeopard1",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard10",
+          "displayName": "GalacticLeopard10",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard11",
+          "displayName": "GalacticLeopard11",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard12",
+          "displayName": "GalacticLeopard12",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard13",
+          "displayName": "GalacticLeopard13",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard14",
+          "displayName": "GalacticLeopard14",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard15",
+          "displayName": "GalacticLeopard15",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard16",
+          "displayName": "GalacticLeopard16",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard17",
+          "displayName": "GalacticLeopard17",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard18",
+          "displayName": "GalacticLeopard18",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard19",
+          "displayName": "GalacticLeopard19",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard2",
+          "displayName": "GalacticLeopard2",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard20",
+          "displayName": "GalacticLeopard20",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard21",
+          "displayName": "GalacticLeopard21",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard22",
+          "displayName": "GalacticLeopard22",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard23",
+          "displayName": "GalacticLeopard23",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard24",
+          "displayName": "GalacticLeopard24",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard25",
+          "displayName": "GalacticLeopard25",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard26",
+          "displayName": "GalacticLeopard26",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard27",
+          "displayName": "GalacticLeopard27",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard28",
+          "displayName": "GalacticLeopard28",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard29",
+          "displayName": "GalacticLeopard29",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard3",
+          "displayName": "GalacticLeopard3",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard30",
+          "displayName": "GalacticLeopard30",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard31",
+          "displayName": "GalacticLeopard31",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard32",
+          "displayName": "GalacticLeopard32",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard33",
+          "displayName": "GalacticLeopard33",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard34",
+          "displayName": "GalacticLeopard34",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard35",
+          "displayName": "GalacticLeopard35",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard36",
+          "displayName": "GalacticLeopard36",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard37",
+          "displayName": "GalacticLeopard37",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard38",
+          "displayName": "GalacticLeopard38",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard39",
+          "displayName": "GalacticLeopard39",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard4",
+          "displayName": "GalacticLeopard4",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard40",
+          "displayName": "GalacticLeopard40",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard5",
+          "displayName": "GalacticLeopard5",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard6",
+          "displayName": "GalacticLeopard6",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard7",
+          "displayName": "GalacticLeopard7",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard8",
+          "displayName": "GalacticLeopard8",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticLeopard_GalacticLeopard9",
+          "displayName": "GalacticLeopard9",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticLeopard"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto1",
+          "displayName": "GalacticOkamoto1",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto10",
+          "displayName": "GalacticOkamoto10",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto11",
+          "displayName": "GalacticOkamoto11",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto12",
+          "displayName": "GalacticOkamoto12",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto13",
+          "displayName": "GalacticOkamoto13",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto14",
+          "displayName": "GalacticOkamoto14",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto15",
+          "displayName": "GalacticOkamoto15",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto16",
+          "displayName": "GalacticOkamoto16",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto17",
+          "displayName": "GalacticOkamoto17",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto18",
+          "displayName": "GalacticOkamoto18",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto19",
+          "displayName": "GalacticOkamoto19",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto2",
+          "displayName": "GalacticOkamoto2",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto20",
+          "displayName": "GalacticOkamoto20",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto21",
+          "displayName": "GalacticOkamoto21",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto22",
+          "displayName": "GalacticOkamoto22",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto23",
+          "displayName": "GalacticOkamoto23",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto24",
+          "displayName": "GalacticOkamoto24",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto25",
+          "displayName": "GalacticOkamoto25",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto26",
+          "displayName": "GalacticOkamoto26",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto27",
+          "displayName": "GalacticOkamoto27",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto28",
+          "displayName": "GalacticOkamoto28",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto29",
+          "displayName": "GalacticOkamoto29",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto3",
+          "displayName": "GalacticOkamoto3",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto30",
+          "displayName": "GalacticOkamoto30",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto4",
+          "displayName": "GalacticOkamoto4",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto5",
+          "displayName": "GalacticOkamoto5",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto6",
+          "displayName": "GalacticOkamoto6",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto7",
+          "displayName": "GalacticOkamoto7",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto8",
+          "displayName": "GalacticOkamoto8",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalacticOkamoto_GalacticOkamoto9",
+          "displayName": "GalacticOkamoto9",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalacticOkamoto"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor01",
+          "displayName": "GalaxyRaptor01",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor02",
+          "displayName": "GalaxyRaptor02",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor03",
+          "displayName": "GalaxyRaptor03",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor04",
+          "displayName": "GalaxyRaptor04",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor05",
+          "displayName": "GalaxyRaptor05",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor06",
+          "displayName": "GalaxyRaptor06",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor07",
+          "displayName": "GalaxyRaptor07",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor08",
+          "displayName": "GalaxyRaptor08",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor09",
+          "displayName": "GalaxyRaptor09",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor10",
+          "displayName": "GalaxyRaptor10",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor11",
+          "displayName": "GalaxyRaptor11",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor12",
+          "displayName": "GalaxyRaptor12",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor13",
+          "displayName": "GalaxyRaptor13",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor14",
+          "displayName": "GalaxyRaptor14",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor15",
+          "displayName": "GalaxyRaptor15",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor16",
+          "displayName": "GalaxyRaptor16",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor17",
+          "displayName": "GalaxyRaptor17",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor18",
+          "displayName": "GalaxyRaptor18",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor19",
+          "displayName": "GalaxyRaptor19",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_GalaxyRaptor_GalaxyRaptor20",
+          "displayName": "GalaxyRaptor20",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "GalaxyRaptor"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon1",
+          "displayName": "HyperFalcon1",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon10",
+          "displayName": "HyperFalcon10",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon11",
+          "displayName": "HyperFalcon11",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon12",
+          "displayName": "HyperFalcon12",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon13",
+          "displayName": "HyperFalcon13",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon14",
+          "displayName": "HyperFalcon14",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon15",
+          "displayName": "HyperFalcon15",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon16",
+          "displayName": "HyperFalcon16",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon17",
+          "displayName": "HyperFalcon17",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon18",
+          "displayName": "HyperFalcon18",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon19",
+          "displayName": "HyperFalcon19",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon2",
+          "displayName": "HyperFalcon2",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon20",
+          "displayName": "HyperFalcon20",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon3",
+          "displayName": "HyperFalcon3",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon4",
+          "displayName": "HyperFalcon4",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon5",
+          "displayName": "HyperFalcon5",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon6",
+          "displayName": "HyperFalcon6",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon7",
+          "displayName": "HyperFalcon7",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon8",
+          "displayName": "HyperFalcon8",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_HyperFalcon_HyperFalcon9",
+          "displayName": "HyperFalcon9",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "HyperFalcon"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox1",
+          "displayName": "LightFox1",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox10",
+          "displayName": "LightFox10",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox11",
+          "displayName": "LightFox11",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox12",
+          "displayName": "LightFox12",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox13",
+          "displayName": "LightFox13",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox14",
+          "displayName": "LightFox14",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox15",
+          "displayName": "LightFox15",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox16",
+          "displayName": "LightFox16",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox17",
+          "displayName": "LightFox17",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox18",
+          "displayName": "LightFox18",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox19",
+          "displayName": "LightFox19",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox2",
+          "displayName": "LightFox2",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox20",
+          "displayName": "LightFox20",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox3",
+          "displayName": "LightFox3",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox4",
+          "displayName": "LightFox4",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox5",
+          "displayName": "LightFox5",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox6",
+          "displayName": "LightFox6",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox7",
+          "displayName": "LightFox7",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox8",
+          "displayName": "LightFox8",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_LightFox_LightFox9",
+          "displayName": "LightFox9",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "LightFox"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis1",
+          "displayName": "MeteorMantis1",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis10",
+          "displayName": "MeteorMantis10",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis11",
+          "displayName": "MeteorMantis11",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis12",
+          "displayName": "MeteorMantis12",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis13",
+          "displayName": "MeteorMantis13",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis14",
+          "displayName": "MeteorMantis14",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis15",
+          "displayName": "MeteorMantis15",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis16",
+          "displayName": "MeteorMantis16",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis17",
+          "displayName": "MeteorMantis17",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis18",
+          "displayName": "MeteorMantis18",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis19",
+          "displayName": "MeteorMantis19",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis2",
+          "displayName": "MeteorMantis2",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis20",
+          "displayName": "MeteorMantis20",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis3",
+          "displayName": "MeteorMantis3",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis4",
+          "displayName": "MeteorMantis4",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis5",
+          "displayName": "MeteorMantis5",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis6",
+          "displayName": "MeteorMantis6",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis7",
+          "displayName": "MeteorMantis7",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis8",
+          "displayName": "MeteorMantis8",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_MeteorMantis_MeteorMantis9",
+          "displayName": "MeteorMantis9",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "MeteorMantis"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye1",
+          "displayName": "NightAye1",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye10",
+          "displayName": "NightAye10",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye11",
+          "displayName": "NightAye11",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye12",
+          "displayName": "NightAye12",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye13",
+          "displayName": "NightAye13",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye14",
+          "displayName": "NightAye14",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye15",
+          "displayName": "NightAye15",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye16",
+          "displayName": "NightAye16",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye17",
+          "displayName": "NightAye17",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye18",
+          "displayName": "NightAye18",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye19",
+          "displayName": "NightAye19",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye2",
+          "displayName": "NightAye2",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye20",
+          "displayName": "NightAye20",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye3",
+          "displayName": "NightAye3",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye4",
+          "displayName": "NightAye4",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye5",
+          "displayName": "NightAye5",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye6",
+          "displayName": "NightAye6",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye7",
+          "displayName": "NightAye7",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye8",
+          "displayName": "NightAye8",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_NightAye_NightAye9",
+          "displayName": "NightAye9",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "NightAye"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegac10",
+          "displayName": "ProtonLegac10",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy1",
+          "displayName": "ProtonLegacy1",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy11",
+          "displayName": "ProtonLegacy11",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy12",
+          "displayName": "ProtonLegacy12",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy13",
+          "displayName": "ProtonLegacy13",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy14",
+          "displayName": "ProtonLegacy14",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy15",
+          "displayName": "ProtonLegacy15",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy16",
+          "displayName": "ProtonLegacy16",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy17",
+          "displayName": "ProtonLegacy17",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy18",
+          "displayName": "ProtonLegacy18",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy19",
+          "displayName": "ProtonLegacy19",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy2",
+          "displayName": "ProtonLegacy2",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy20",
+          "displayName": "ProtonLegacy20",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy3",
+          "displayName": "ProtonLegacy3",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy4",
+          "displayName": "ProtonLegacy4",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy5",
+          "displayName": "ProtonLegacy5",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy6",
+          "displayName": "ProtonLegacy6",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy7",
+          "displayName": "ProtonLegacy7",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy8",
+          "displayName": "ProtonLegacy8",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_ProtonLegacy_ProtonLegacy9",
+          "displayName": "ProtonLegacy9",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "ProtonLegacy"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur1",
+          "displayName": "SpaceExcalibur1",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur10",
+          "displayName": "SpaceExcalibur10",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur11",
+          "displayName": "SpaceExcalibur11",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur12",
+          "displayName": "SpaceExcalibur12",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur13",
+          "displayName": "SpaceExcalibur13",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur14",
+          "displayName": "SpaceExcalibur14",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur15",
+          "displayName": "SpaceExcalibur15",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur16",
+          "displayName": "SpaceExcalibur16",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur17",
+          "displayName": "SpaceExcalibur17",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur18",
+          "displayName": "SpaceExcalibur18",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur19",
+          "displayName": "SpaceExcalibur19",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur2",
+          "displayName": "SpaceExcalibur2",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur20",
+          "displayName": "SpaceExcalibur20",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur3",
+          "displayName": "SpaceExcalibur3",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur4",
+          "displayName": "SpaceExcalibur4",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur5",
+          "displayName": "SpaceExcalibur5",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur6",
+          "displayName": "SpaceExcalibur6",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur7",
+          "displayName": "SpaceExcalibur7",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur8",
+          "displayName": "SpaceExcalibur8",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceExcalibur_SpaceExcalibur9",
+          "displayName": "SpaceExcalibur9",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceExcalibur"
+        },
+        {
+          "id": "Ultimate_SpaceSphinx_SpaceSphinx1",
+          "displayName": "SpaceSphinx1",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceSphinx"
+        },
+        {
+          "id": "Ultimate_SpaceSphinx_SpaceSphinx2",
+          "displayName": "SpaceSphinx2",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceSphinx"
+        },
+        {
+          "id": "Ultimate_SpaceSphinx_SpaceSphinx3",
+          "displayName": "SpaceSphinx3",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceSphinx"
+        },
+        {
+          "id": "Ultimate_SpaceSphinx_SpaceSphinx4",
+          "displayName": "SpaceSphinx4",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceSphinx"
+        },
+        {
+          "id": "Ultimate_SpaceSphinx_SpaceSphinx5",
+          "displayName": "SpaceSphinx5",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceSphinx"
+        },
+        {
+          "id": "Ultimate_SpaceSphinx_SpaceSphinx6",
+          "displayName": "SpaceSphinx6",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceSphinx"
+        },
+        {
+          "id": "Ultimate_SpaceSphinx_SpaceSphinx7",
+          "displayName": "SpaceSphinx7",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceSphinx"
+        },
+        {
+          "id": "Ultimate_SpaceSphinx_SpaceSphinx8",
+          "displayName": "SpaceSphinx8",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "SpaceSphinx"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce1",
+          "displayName": "StarForce1",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce10",
+          "displayName": "StarForce10",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce11",
+          "displayName": "StarForce11",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce12",
+          "displayName": "StarForce12",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce13",
+          "displayName": "StarForce13",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce14",
+          "displayName": "StarForce14",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce15",
+          "displayName": "StarForce15",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce16",
+          "displayName": "StarForce16",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce17",
+          "displayName": "StarForce17",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce18",
+          "displayName": "StarForce18",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce19",
+          "displayName": "StarForce19",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce2",
+          "displayName": "StarForce2",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce20",
+          "displayName": "StarForce20",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce3",
+          "displayName": "StarForce3",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce4",
+          "displayName": "StarForce4",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce5",
+          "displayName": "StarForce5",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce6",
+          "displayName": "StarForce6",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce7",
+          "displayName": "StarForce7",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce8",
+          "displayName": "StarForce8",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StarForce_StarForce9",
+          "displayName": "StarForce9",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StarForce"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx1",
+          "displayName": "StriderOx1",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx10",
+          "displayName": "StriderOx10",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx11",
+          "displayName": "StriderOx11",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx12",
+          "displayName": "StriderOx12",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx13",
+          "displayName": "StriderOx13",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx14",
+          "displayName": "StriderOx14",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx15",
+          "displayName": "StriderOx15",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx16",
+          "displayName": "StriderOx16",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx17",
+          "displayName": "StriderOx17",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx18",
+          "displayName": "StriderOx18",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx19",
+          "displayName": "StriderOx19",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx2",
+          "displayName": "StriderOx2",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx20",
+          "displayName": "StriderOx20",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx3",
+          "displayName": "StriderOx3",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx4",
+          "displayName": "StriderOx4",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx5",
+          "displayName": "StriderOx5",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx6",
+          "displayName": "StriderOx6",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx7",
+          "displayName": "StriderOx7",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx8",
+          "displayName": "StriderOx8",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_StriderOx_StriderOx9",
+          "displayName": "StriderOx9",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "StriderOx"
+        },
+        {
+          "id": "Ultimate_VoidWhale_VoidWhale1",
+          "displayName": "VoidWhale1",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "VoidWhale"
+        },
+        {
+          "id": "Ultimate_VoidWhale_VoidWhale2",
+          "displayName": "VoidWhale2",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "VoidWhale"
+        },
+        {
+          "id": "Ultimate_VoidWhale_VoidWhale3",
+          "displayName": "VoidWhale3",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "VoidWhale"
+        },
+        {
+          "id": "Ultimate_VoidWhale_VoidWhale4",
+          "displayName": "VoidWhale4",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "VoidWhale"
+        },
+        {
+          "id": "Ultimate_VoidWhale_VoidWhale5",
+          "displayName": "VoidWhale5",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "VoidWhale"
+        },
+        {
+          "id": "Ultimate_VoidWhale_VoidWhale6",
+          "displayName": "VoidWhale6",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "VoidWhale"
+        },
+        {
+          "id": "Ultimate_VoidWhale_VoidWhale7",
+          "displayName": "VoidWhale7",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "VoidWhale"
+        },
+        {
+          "id": "Ultimate_VoidWhale_VoidWhale8",
+          "displayName": "VoidWhale8",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "VoidWhale"
+        },
+        {
+          "id": "Ultimate_VoidWhale_VoidWhale9",
+          "displayName": "VoidWhale9",
+          "pack": "UltimateSpaceshipsCreator",
+          "category": "VoidWhale"
+        }
+      ],
+      "note": "Space ship list is generated from Unity's Resources/VF/SpaceShipCatalog.json."
+    }
+  }
+}

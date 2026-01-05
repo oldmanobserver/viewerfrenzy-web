@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>ViewerFrenzy – Twitch Login</title>
+    <link rel="stylesheet" href="/styles/app.css" />
+    <script src="/config.js" defer></script>
+    <script type="module" src="/js/callback.js" defer></script>
+  </head>
+  <body>
+    <div class="vf-callback">
+      <div class="vf-loginCard" style="max-width: 520px">
+        <div class="vf-brand">
+          <div class="vf-brandMark" aria-hidden="true">VF</div>
+          <div>
+            <div class="vf-brandTitle">ViewerFrenzy</div>
+            <div class="vf-brandTag">Finishing Twitch sign-in…</div>
+          </div>
+        </div>
+
+        <div class="vf-loginBody">
+          <div id="vf-cbStatus" class="vf-muted">Reading Twitch response…</div>
+          <div id="vf-cbError" class="vf-alert vf-alertError" hidden></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
