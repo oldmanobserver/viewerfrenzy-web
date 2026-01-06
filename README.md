@@ -31,6 +31,11 @@ Then set:
 
 - `window.VF_CONFIG.twitchClientId`
 
+Note:
+
+- `window.VF_CONFIG.twitchScopes` should include `user:read:subscriptions` so the server can verify
+  whether the viewer is subscribed to the configured broadcaster (alpha/beta access gate).
+
 2) **Twitch Developer Console settings**
 
 In your Twitch app settings, add these redirect URLs:
@@ -43,7 +48,13 @@ In your Twitch app settings, add these redirect URLs:
 - `http://localhost:8788/callback.html`
 - `http://localhost:3000/callback.html`
 
-3) **Cloudflare Pages Function bindings**
+3) **Cloudflare Pages Functions environment**
+
+Environment variables:
+
+- `VF_TWITCH_BROADCASTER_LOGIN` (e.g. `oldmanobserver`)
+
+KV bindings (same as Unity):
 
 Make sure these are bound (same as Unity):
 

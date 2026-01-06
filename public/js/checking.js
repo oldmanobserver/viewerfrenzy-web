@@ -69,63 +69,9 @@ async function init() {
   }
 
   // ---------------------------------------------------------------------------
-  // 1) Broadcaster auto-connect (server-side env decides who is broadcaster)
+  // Website access check (subscriber OR VIP)
   // ---------------------------------------------------------------------------
   setStatus("Checking permissions…");
-  setDetail("Checking streamer setup…");
-
-  try {
-    const stResp = await fetch(withDebug("/api/v1/admin/twitch/status"), {
-      headers: { Authorization: `Bearer ${a.accessToken}` },
-      cache: "no-store",
-    });
-
-    const stBody = await readBody(stResp);
-    dbg("admin/twitch/status", stResp.status, stBody.json || stBody.text);
-
-    if (stResp.status === 401) {
-      // Token invalid
-      auth.logout();
-      redirect("/index.html");
-      return;
-    }
-
-    if (stResp.ok) {
-      const st = stBody.json || {};
-      if (st?.connected === false) {
-        setDetail("Connecting streamer permissions (one-time)…");
-
-        const cResp = await fetch(withDebug("/api/v1/admin/twitch/connect"), {
-          headers: {
-            Authorization: `Bearer ${a.accessToken}`,
-            Accept: "application/json",
-          },
-          cache: "no-store",
-        });
-
-        const cBody = await readBody(cResp);
-        dbg("admin/twitch/connect", cResp.status, cBody.json || cBody.text);
-
-        if (cResp.ok && cBody.json?.url) {
-          // Redirect the browser to Twitch consent
-          window.location.href = cBody.json.url;
-          return;
-        }
-
-        // If connect fails, continue to access check (it might still work for VIP-only mode),
-        // but show helpful debug info.
-        setDetail("Streamer setup could not be verified. Continuing…");
-      }
-    }
-    // 403 means "not the broadcaster" -> ignore and continue.
-  } catch (e) {
-    dbg("status/connect flow failed:", e);
-    // Continue to access check anyway.
-  }
-
-  // ---------------------------------------------------------------------------
-  // 2) Website access check (subscriber OR VIP)
-  // ---------------------------------------------------------------------------
   setDetail("Checking subscriber/VIP access…");
 
   const accessResp = await fetch(withDebug("/api/v1/access"), {

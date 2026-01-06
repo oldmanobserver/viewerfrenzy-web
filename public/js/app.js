@@ -114,27 +114,6 @@ async function init() {
 
   updateUserUI(me);
 
-  // If the broadcaster logs in and subscriber checks aren't connected yet,
-  // automatically run the one-time connect flow (stores tokens in KV).
-  if ((me?.login || "").toLowerCase() === "oldmanobserver") {
-    try {
-      const resp = await fetch("/api/v1/admin/twitch/status", {
-        headers: { Authorization: `Bearer ${session.accessToken || session.access_token}` },
-      });
-      if (resp.ok) {
-        const st = await resp.json();
-        if (st?.connected === false) {
-          // This redirects to Twitch consent for channel:read:subscriptions (broadcaster only).
-          window.location.href = "/api/v1/admin/twitch/connect";
-          return;
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-
   // Load vehicle catalog (static file)
   let catalog = null;
   try {

@@ -7,6 +7,7 @@
 
 window.VF_CONFIG = {
   twitchClientId: "6kx9k44jtil58jgxtemvmrcc45rfxw",
-  // No viewer subscription scopes required. Website access is checked server-side using the broadcaster token.
-  twitchScopes: "",
+  // Required for alpha/beta access gating (so the server can verify the viewer subscribes to the configured broadcaster).
+  // You may add additional scopes separated by spaces. Example: "user:read:subscriptions user:read:email"
+  twitchScopes: "user:read:subscriptions",
 };

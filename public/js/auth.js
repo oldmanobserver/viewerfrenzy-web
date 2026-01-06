@@ -44,8 +44,17 @@ export function buildAuthorizeUrl() {
     state,
   });
 
-  // Twitch treats scope as optional; include only if non-empty.
-  if (cfg.twitchScopes) params.set("scope", cfg.twitchScopes);
+  // ViewerFrenzy requires this scope so the server can verify whether the user is
+  // subscribed to the configured broadcaster (alpha/beta access gate).
+  const REQUIRED = ["user:read:subscriptions"];
+
+  const optional = String(cfg.twitchScopes || "")
+    .split(/\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const merged = Array.from(new Set([...REQUIRED, ...optional]));
+  if (merged.length) params.set("scope", merged.join(" "));
 
   return {
     url: `https://id.twitch.tv/oauth2/authorize?${params.toString()}`,

@@ -9,8 +9,11 @@ window.VF_CONFIG = {
   // Example: "abcd1234efgh5678ijkl9012mnop3456"
   twitchClientId: "YOUR_TWITCH_CLIENT_ID",
 
-  // Optional scopes.
-  // For ViewerFrenzy defaults, you can typically leave this empty.
-  // If you want email in the /api/v1/me payload, request: "user:read:email".
-  twitchScopes: "",
+  // Required scopes.
+  // ViewerFrenzy uses `user:read:subscriptions` so the server can verify the user is
+  // subscribed to the configured broadcaster (alpha/beta gate).
+  //
+  // You may add additional scopes separated by spaces. Example:
+  //   "user:read:subscriptions user:read:email"
+  twitchScopes: "user:read:subscriptions",
 };
