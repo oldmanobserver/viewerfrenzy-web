@@ -147,7 +147,7 @@ export async function requireTwitchUser(context) {
 //  - VF_TWITCH_CLIENT_ID (if unset, we use the client_id returned by /oauth2/validate)
 // ---------------------------------------------------------------------------
 
-const DEFAULT_ALLOWED_BROADCASTER_LOGIN = "";
+const DEFAULT_ALLOWED_BROADCASTER_LOGIN = "oldmanobserver";
 const REQUIRED_SUB_SCOPE = "user:read:subscriptions";
 
 let _vipCache = { fetchedAtMs: 0, set: null };
@@ -276,27 +276,36 @@ export async function requireWebsiteUser(context, { broadcasterLogin } = {}) {
   const v = auth.validated;
   const user = auth.user;
 
+  
   const loginLower = (user?.login || "").toLowerCase().trim();
-  const envBroadcasterLogin = getEnvString(context.env, "VF_TWITCH_BROADCASTER_LOGIN");
-  const allowedLogin = (broadcasterLogin || envBroadcasterLogin || "").toLowerCase().trim();
 
-  if (!allowedLogin) {
+  // Broadcaster this website is gated against.
+  // We DO NOT require a broadcaster token; we only need to know *which* broadcaster/channel to check subscriptions for.
+  // Configure via:
+  //   - optional function parameter: broadcasterLogin
+  //   - optional env: VF_TWITCH_BROADCASTER_LOGIN (login *or* numeric id)
+  // If neither is set, we fall back to DEFAULT_ALLOWED_BROADCASTER_LOGIN ("oldmanobserver").
+  const envBroadcasterLoginOrId = getEnvString(context.env, "VF_TWITCH_BROADCASTER_LOGIN");
+  const allowedLoginOrId = (broadcasterLogin || envBroadcasterLoginOrId || DEFAULT_ALLOWED_BROADCASTER_LOGIN).trim();
+
+  if (!allowedLoginOrId) {
     return {
       ok: false,
       response: jsonResponse(
         request,
-        { error: "server_misconfigured", message: "Missing VF_TWITCH_BROADCASTER_LOGIN env var." },
+        { error: "server_misconfigured", message: "Broadcaster login is not configured." },
         500
       ),
     };
   }
 
-
-  // Owner always allowed
-  if (loginLower && loginLower === allowedLogin) {
+  const allowedLower = allowedLoginOrId.toLowerCase();
+  const allowedIsId = /^\d+$/.test(allowedLoginOrId);
+  const broadcasterDisplay = allowedIsId ? allowedLoginOrId : allowedLower;
+// Owner (the gated broadcaster) is always allowed
+  if ((loginLower && !allowedIsId && loginLower === allowedLower) || (allowedIsId && v.user_id === allowedLoginOrId)) {
     return { ...auth, access: { allowed: true, reason: "broadcaster" } };
   }
-
   // VIP allowlist
   const vipSet = await loadVipSet(request);
   if (loginLower && vipSet.has(loginLower)) {
@@ -317,7 +326,7 @@ export async function requireWebsiteUser(context, { broadcasterLogin } = {}) {
           message: "Your Twitch session is missing a required permission. Please log out and log in again.",
           required: {
             viewerScope: REQUIRED_SUB_SCOPE,
-            broadcaster: envBroadcasterLogin || allowedLogin,
+            broadcaster: broadcasterDisplay,
           },
         },
         401,
@@ -325,16 +334,20 @@ export async function requireWebsiteUser(context, { broadcasterLogin } = {}) {
     };
   }
 
+  
   const envClientId = getEnvString(context.env, "VF_TWITCH_CLIENT_ID") || v.client_id;
-  const finalBroadcasterLogin = envBroadcasterLogin || allowedLogin;
+  const finalBroadcasterLogin = broadcasterDisplay;
 
-  const broadcasterId = await getBroadcasterId({
-    accessToken: token,
-    clientId: envClientId,
-    broadcasterLogin: finalBroadcasterLogin,
-  });
-
-  if (!broadcasterId) {
+  // Resolve the broadcaster id for the subscription check.
+  // If VF_TWITCH_BROADCASTER_LOGIN is already a numeric id, we can skip the Helix lookup.
+  const broadcasterId = allowedIsId
+    ? allowedLoginOrId
+    : await getBroadcasterId({
+        accessToken: token,
+        clientId: envClientId,
+        broadcasterLogin: finalBroadcasterLogin,
+      });
+if (!broadcasterId) {
     return {
       ok: false,
       response: jsonResponse(request, { error: "access_gate_misconfigured", message: "broadcaster_not_found" }, 500),
@@ -396,7 +409,7 @@ export async function requireWebsiteUser(context, { broadcasterLogin } = {}) {
       request,
       {
         error: "access_denied",
-        message: `Access is currently restricted during alpha/beta. Please subscribe to ${allowedLogin} on Twitch to get access.`,
+        message: `Access is currently restricted during alpha/beta. Please subscribe to ${broadcasterDisplay} on Twitch to get access.`,
         details: "not_subscribed",
         required: {
           broadcaster: finalBroadcasterLogin,

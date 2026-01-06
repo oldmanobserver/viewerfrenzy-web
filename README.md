@@ -52,7 +52,8 @@ In your Twitch app settings, add these redirect URLs:
 
 Environment variables:
 
-- `VF_TWITCH_BROADCASTER_LOGIN` (e.g. `oldmanobserver`)
+- `VF_TWITCH_BROADCASTER_LOGIN` *(optional)* — Twitch **login** (e.g. `oldmanobserver`) or numeric **broadcaster id**.
+  - If omitted, defaults to `oldmanobserver`.
 
 KV bindings (same as Unity):
 
