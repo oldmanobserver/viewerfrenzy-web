@@ -43,7 +43,7 @@ export async function loadVehicleCatalog() {
         ground: {
           label: "Ground",
           emoji: "🚗",
-          options: [{ id: "__random__", displayName: "Random (seeded)" }],
+          options: [],
           note: "Add your ground vehicles to /public/data/vehicleCatalog.json",
         },
       },

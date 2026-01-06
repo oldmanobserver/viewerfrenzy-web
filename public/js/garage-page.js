@@ -105,13 +105,6 @@ function autoCenterPreviewImage(imgEl) {
   imgEl.style.setProperty("--vf-previewShiftY", `${clamped.toFixed(2)}px`);
 }
 
-function preferredRandomId(type) {
-  // Matches your Unity GarageUIController convention:
-  // - resort random is tube_palette
-  // - others use __random__
-  return type === "resort" ? "tube_palette" : "__random__";
-}
-
 function clamp(n, min, max) {
   return Math.min(Math.max(n, min), max);
 }
@@ -156,7 +149,6 @@ function optionMeta(type, opt) {
 
   if (type === "resort") {
     if ((opt.id || "").startsWith("tube_")) return "Lazy river tube";
-    if (opt.id === "tube_palette") return "Lazy river tube";
   }
 
   return opt.meta || "";
@@ -179,12 +171,10 @@ function labelForServerRecord(type, record, typeEntry) {
   const vehicleId = record?.vehicleId ?? "";
 
   if (!vehicleId) {
-    const rid = preferredRandomId(type);
-    const opt = findOption(typeEntry, rid);
     return {
-      label: opt ? opt.displayName : "Random (seeded)",
+      label: "Cleared (uses game default)",
       updatedAt: record?.updatedAt || "",
-      kind: "random",
+      kind: "cleared",
     };
   }
 
@@ -304,7 +294,7 @@ async function init() {
 
         <div class="vf-previewControls">
           <button id="vf-saveDefaultBtn" class="vf-btn vf-btnPrimary" type="button" style="flex: 1">Save as Default</button>
-          <button id="vf-setRandomBtn" class="vf-btn vf-btnSecondary" type="button" style="flex: 1">Set Random (seeded)</button>
+          <button id="vf-clearDefaultBtn" class="vf-btn vf-btnSecondary" type="button" style="flex: 1">Clear Default (use game default)</button>
         </div>
 
         <div id="vf-savedDefaultLabel" class="vf-muted vf-small" style="margin-top: 10px"></div>
@@ -337,7 +327,7 @@ async function init() {
   const btnRotReset = root.querySelector("#vf-rotReset");
 
   const btnSave = root.querySelector("#vf-saveDefaultBtn");
-  const btnRandom = root.querySelector("#vf-setRandomBtn");
+  const btnClear = root.querySelector("#vf-clearDefaultBtn");
 
   elSearch.value = state.search;
   elCols.value = String(state.cols);
@@ -379,12 +369,15 @@ async function init() {
   }
 
   function effectiveSelectedId() {
-    if (state.selectedId) return state.selectedId;
+    if (state.selectedId && !isRandomPlaceholderId(state.selectedId)) return state.selectedId;
 
     const record = getServerRecord();
-    if (record && record.vehicleId) return record.vehicleId;
+    if (record && record.vehicleId && !isRandomPlaceholderId(record.vehicleId)) return record.vehicleId;
 
-    return preferredRandomId(state.type);
+    // No per-user default set: fall back to the first available option.
+    const opts = filteredOptions();
+    const first = opts.find((o) => o?.id && !isRandomPlaceholderId(o.id));
+    return first?.id || null;
   }
 
   function renderTypeChips() {
@@ -445,7 +438,7 @@ async function init() {
     // Server default badge
     const record = getServerRecord();
     const serverVehicleId = record === null ? null : (record?.vehicleId ?? "");
-    const defaultId = serverVehicleId ? serverVehicleId : preferredRandomId(state.type);
+    const defaultId = serverVehicleId ? serverVehicleId : "";
 
     // Subtitle + server status
     const entryLabel = entry?.label || state.type;
@@ -468,9 +461,7 @@ async function init() {
         const meta = optionMeta(state.type, o);
         const badge = isDefault
           ? `<div class="vf-tileBadge vf-tileBadgeStar">★ Default</div>`
-          : isRandomPlaceholderId(id)
-            ? `<div class="vf-tileBadge">Random</div>`
-            : "";
+          : "";
 
         return `
           <div class="vf-vehicleTile ${isSelected ? "is-selected" : ""}" data-id="${escapeHtml(id)}" role="button" tabindex="0">
@@ -511,8 +502,8 @@ async function init() {
     const selId = effectiveSelectedId();
     const opt = findOption(entry, selId);
 
-    const displayName = opt?.displayName || (isRandomPlaceholderId(selId) ? "Random (seeded)" : selId);
-    elSelectedLabel.textContent = `Selected: ${displayName} (${selId})`;
+    const displayName = opt?.displayName || (selId ? selId : "(none)");
+    elSelectedLabel.textContent = selId ? `Selected: ${displayName} (${selId})` : "Select a vehicle…";
 
     // When the preview image finishes loading, compute an alpha-bounds based
     // translateY so the visible vehicle is visually centered.
@@ -569,25 +560,28 @@ async function init() {
     renderGrid();
   }
 
-  async function saveSelectionAsDefault({ forceRandom = false } = {}) {
+  async function saveSelectionAsDefault() {
     const type = state.type;
     const entry = currentTypeEntry();
 
-    const selectedId = forceRandom ? preferredRandomId(type) : effectiveSelectedId();
-
-    let vehicleId = selectedId;
-    if (forceRandom || isRandomPlaceholderId(selectedId)) {
-      vehicleId = ""; // matches Unity: store explicit random as empty string
+    const selectedId = effectiveSelectedId();
+    if (!selectedId) {
+      toast("No vehicle selected.");
+      return;
     }
 
+    // Server API convention: vehicleId is a non-empty string when setting a default.
+    // (Empty string is reserved for 'cleared')
+    const vehicleId = String(selectedId || "").trim();
+
     btnSave.disabled = true;
-    btnRandom.disabled = true;
+    btnClear.disabled = true;
 
     try {
       const resp = await api.putVehicleDefault(type, vehicleId, session.auth);
 
       state.serverDefaults[type] = resp?.value ?? null;
-      state.selectedId = forceRandom ? preferredRandomId(type) : selectedId;
+      state.selectedId = selectedId;
 
       const serverLabel = labelForServerRecord(type, state.serverDefaults[type], entry);
       toast(`Saved: ${serverLabel.label}`);
@@ -604,7 +598,38 @@ async function init() {
       }
     } finally {
       btnSave.disabled = false;
-      btnRandom.disabled = false;
+      btnClear.disabled = false;
+    }
+  }
+
+  async function clearServerDefault() {
+    const type = state.type;
+    const entry = currentTypeEntry();
+
+    btnSave.disabled = true;
+    btnClear.disabled = true;
+
+    try {
+      // Empty string in the API represents "cleared" (no per-user override).
+      const resp = await api.putVehicleDefault(type, "", session.auth);
+      state.serverDefaults[type] = resp?.value ?? null;
+
+      const serverLabel = labelForServerRecord(type, state.serverDefaults[type], entry);
+      toast(`Saved: ${serverLabel.label}`);
+      setError("");
+
+      renderGrid();
+    } catch (e) {
+      const msg = e?.message || "Failed to clear default.";
+      setError(msg);
+
+      if (e?.status === 401 || e?.status === 403) {
+        clearSession();
+        window.location.replace(`${window.location.origin}/index.html`);
+      }
+    } finally {
+      btnSave.disabled = false;
+      btnClear.disabled = false;
     }
   }
 
@@ -738,8 +763,8 @@ async function init() {
   elPreviewViewport.addEventListener("pointerup", onPreviewUp);
   elPreviewViewport.addEventListener("pointercancel", onPreviewUp);
 
-  btnSave.addEventListener("click", () => saveSelectionAsDefault({ forceRandom: false }));
-  btnRandom.addEventListener("click", () => saveSelectionAsDefault({ forceRandom: true }));
+  btnSave.addEventListener("click", () => saveSelectionAsDefault());
+  btnClear.addEventListener("click", () => clearServerDefault());
 
   // Initial render
   renderTypeChips();

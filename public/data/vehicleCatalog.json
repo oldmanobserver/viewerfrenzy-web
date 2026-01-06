@@ -4,99 +4,91 @@
   "types": {
     "ground": {
       "label": "Ground",
-      "emoji": "\ud83d\ude97",
+      "emoji": "🚗",
       "description": "Ground vehicle IDs exported from GarageUIController.racerPrefab -> RacerVisual.GetPrefabsForVehicleType(VehicleType.Ground) (prefab.name).",
       "options": [
-          {
-              "id": "__random__",
-              "displayName": "Random (seeded)"
-          },
-          {
-              "id": "Vehicle_Delivery",
-              "displayName": "Vehicle Delivery"
-          },
-          {
-              "id": "Vehicle_Delivery_Flat",
-              "displayName": "Vehicle Delivery Flat"
-          },
-          {
-              "id": "Vehicle_Firetruck",
-              "displayName": "Vehicle Firetruck"
-          },
-          {
-              "id": "Vehicle_Garbage_Truck",
-              "displayName": "Vehicle Garbage Truck"
-          },
-          {
-              "id": "Vehicle_Hatchback_Sports",
-              "displayName": "Vehicle Hatchback Sports"
-          },
-          {
-              "id": "Vehicle_Police",
-              "displayName": "Vehicle Police"
-          },
-          {
-              "id": "Vehicle_Race",
-              "displayName": "Vehicle Race"
-          },
-          {
-              "id": "Vehicle_Race_Future",
-              "displayName": "Vehicle Race Future"
-          },
-          {
-              "id": "Vehicle_Sedan",
-              "displayName": "Vehicle Sedan"
-          },
-          {
-              "id": "Vehicle_Sedan_Sports",
-              "displayName": "Vehicle Sedan Sports"
-          },
-          {
-              "id": "Vehicle_Suv",
-              "displayName": "Vehicle Suv"
-          },
-          {
-              "id": "Vehicle_Suv_Luxury",
-              "displayName": "Vehicle Suv Luxury"
-          },
-          {
-              "id": "Vehicle_Taxi",
-              "displayName": "Vehicle Taxi"
-          },
-          {
-              "id": "Vehicle_Tractor",
-              "displayName": "Vehicle Tractor"
-          },
-          {
-              "id": "Vehicle_Tractor_Police",
-              "displayName": "Vehicle Tractor Police"
-          },
-          {
-              "id": "Vehicle_Tractor_Shovel",
-              "displayName": "Vehicle Tractor Shovel"
-          },
-          {
-              "id": "Vehicle_Truck",
-              "displayName": "Vehicle Truck"
-          },
-          {
-              "id": "Vehicle_Truck_Flat",
-              "displayName": "Vehicle Truck Flat"
-          },
-          {
-              "id": "Vehicle_Van",
-              "displayName": "Vehicle Van"
-          }
+        {
+          "id": "Vehicle_Delivery",
+          "displayName": "Vehicle Delivery"
+        },
+        {
+          "id": "Vehicle_Delivery_Flat",
+          "displayName": "Vehicle Delivery Flat"
+        },
+        {
+          "id": "Vehicle_Firetruck",
+          "displayName": "Vehicle Firetruck"
+        },
+        {
+          "id": "Vehicle_Garbage_Truck",
+          "displayName": "Vehicle Garbage Truck"
+        },
+        {
+          "id": "Vehicle_Hatchback_Sports",
+          "displayName": "Vehicle Hatchback Sports"
+        },
+        {
+          "id": "Vehicle_Police",
+          "displayName": "Vehicle Police"
+        },
+        {
+          "id": "Vehicle_Race",
+          "displayName": "Vehicle Race"
+        },
+        {
+          "id": "Vehicle_Race_Future",
+          "displayName": "Vehicle Race Future"
+        },
+        {
+          "id": "Vehicle_Sedan",
+          "displayName": "Vehicle Sedan"
+        },
+        {
+          "id": "Vehicle_Sedan_Sports",
+          "displayName": "Vehicle Sedan Sports"
+        },
+        {
+          "id": "Vehicle_Suv",
+          "displayName": "Vehicle Suv"
+        },
+        {
+          "id": "Vehicle_Suv_Luxury",
+          "displayName": "Vehicle Suv Luxury"
+        },
+        {
+          "id": "Vehicle_Taxi",
+          "displayName": "Vehicle Taxi"
+        },
+        {
+          "id": "Vehicle_Tractor",
+          "displayName": "Vehicle Tractor"
+        },
+        {
+          "id": "Vehicle_Tractor_Police",
+          "displayName": "Vehicle Tractor Police"
+        },
+        {
+          "id": "Vehicle_Tractor_Shovel",
+          "displayName": "Vehicle Tractor Shovel"
+        },
+        {
+          "id": "Vehicle_Truck",
+          "displayName": "Vehicle Truck"
+        },
+        {
+          "id": "Vehicle_Truck_Flat",
+          "displayName": "Vehicle Truck Flat"
+        },
+        {
+          "id": "Vehicle_Van",
+          "displayName": "Vehicle Van"
+        }
       ]
-  },
+    },
     "resort": {
       "label": "Resort",
-      "emoji": "\ud83d\udedf",
+      "emoji": "🛟",
       "options": [
-        {
-          "id": "tube_palette",
-          "displayName": "Tube: Random palette (seeded)"
-        },
         {
           "id": "tube_color_0",
           "displayName": "Tube: Color 0"
@@ -134,12 +126,8 @@
     },
     "space": {
       "label": "Space",
-      "emoji": "\ud83d\ude80",
+      "emoji": "🚀",
       "options": [
-        {
-          "id": "__random__",
-          "displayName": "Random (seeded)"
-        },
         {
           "id": "StarSparrow_AstroEagle_AstroEagle1",
           "displayName": "AstroEagle1",
