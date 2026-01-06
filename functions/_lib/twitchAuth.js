@@ -144,7 +144,7 @@ export async function requireTwitchUser(context) {
 // Required env vars (Cloudflare Pages Functions):
 //  - VF_TWITCH_BROADCASTER_LOGIN (e.g. "oldmanobserver")
 // Optional:
-//  - VF_TWITCH_CLIENT_ID (if unset, we use the client_id returned by /oauth2/validate)
+//  - VF_TWITCH_CLIENT_ID (legacy; NOT needed for this viewer-token flow)
 // ---------------------------------------------------------------------------
 
 const DEFAULT_ALLOWED_BROADCASTER_LOGIN = "oldmanobserver";
@@ -197,12 +197,23 @@ async function loadVipSet(request) {
   return _vipCache.set;
 }
 
-async function getBroadcasterId({ accessToken, clientId, broadcasterLogin }) {
-  const login = (broadcasterLogin || DEFAULT_ALLOWED_BROADCASTER_LOGIN).toLowerCase().trim();
+function isValidTwitchLogin(login) {
+  // Twitch logins are lowercase, alphanumeric + underscore.
+  // (Length rules can evolve; we keep this permissive but safe.)
+  return /^[a-z0-9_]{1,32}$/.test(String(login || ""));
+}
+
+async function resolveBroadcasterId({ accessToken, clientId, broadcasterLogin }) {
+  const loginRaw = (broadcasterLogin || DEFAULT_ALLOWED_BROADCASTER_LOGIN).toLowerCase().trim();
+  const login = isValidTwitchLogin(loginRaw) ? loginRaw : DEFAULT_ALLOWED_BROADCASTER_LOGIN;
   const now = Date.now();
 
-  if (_broadcasterCache.id && _broadcasterCache.login === login && now - _broadcasterCache.fetchedAtMs < 10 * 60_000) {
-    return _broadcasterCache.id;
+  if (
+    _broadcasterCache.id &&
+    _broadcasterCache.login === login &&
+    now - _broadcasterCache.fetchedAtMs < 10 * 60_000
+  ) {
+    return { ok: true, id: _broadcasterCache.id, login };
   }
 
   const url = `https://api.twitch.tv/helix/users?login=${encodeURIComponent(login)}`;
@@ -212,13 +223,38 @@ async function getBroadcasterId({ accessToken, clientId, broadcasterLogin }) {
       Authorization: `Bearer ${accessToken}`,
     },
   });
-  if (!resp.ok) return "";
 
-  const json = await resp.json();
+  if (!resp.ok) {
+    let body = null;
+    try {
+      body = await resp.json();
+    } catch {
+      body = null;
+    }
+    return {
+      ok: false,
+      id: "",
+      login,
+      status: resp.status,
+      error: body?.message || body?.error || `twitch_users_lookup_failed_${resp.status}`,
+    };
+  }
+
+  let json = null;
+  try {
+    json = await resp.json();
+  } catch {
+    json = null;
+  }
+
   const u = json?.data?.[0];
   const id = u?.id || "";
-  if (id) _broadcasterCache = { fetchedAtMs: now, login, id };
-  return id;
+  if (!id) {
+    return { ok: false, id: "", login, status: 404, error: "broadcaster_login_not_found" };
+  }
+
+  _broadcasterCache = { fetchedAtMs: now, login, id };
+  return { ok: true, id, login };
 }
 
 async function checkUserSubscription({ accessToken, clientId, broadcasterId, userId }) {
@@ -286,24 +322,22 @@ export async function requireWebsiteUser(context, { broadcasterLogin } = {}) {
   //   - optional env: VF_TWITCH_BROADCASTER_LOGIN (login *or* numeric id)
   // If neither is set, we fall back to DEFAULT_ALLOWED_BROADCASTER_LOGIN ("oldmanobserver").
   const envBroadcasterLoginOrId = getEnvString(context.env, "VF_TWITCH_BROADCASTER_LOGIN");
-  const allowedLoginOrId = (broadcasterLogin || envBroadcasterLoginOrId || DEFAULT_ALLOWED_BROADCASTER_LOGIN).trim();
+  const configuredLoginOrId = (broadcasterLogin || envBroadcasterLoginOrId || DEFAULT_ALLOWED_BROADCASTER_LOGIN).trim();
 
-  if (!allowedLoginOrId) {
-    return {
-      ok: false,
-      response: jsonResponse(
-        request,
-        { error: "server_misconfigured", message: "Broadcaster login is not configured." },
-        500
-      ),
-    };
-  }
+  const allowedIsId = /^\d+$/.test(configuredLoginOrId);
+  const normalizedBroadcasterLogin = allowedIsId
+    ? ""
+    : (isValidTwitchLogin(configuredLoginOrId.toLowerCase().trim())
+        ? configuredLoginOrId.toLowerCase().trim()
+        : DEFAULT_ALLOWED_BROADCASTER_LOGIN);
 
-  const allowedLower = allowedLoginOrId.toLowerCase();
-  const allowedIsId = /^\d+$/.test(allowedLoginOrId);
-  const broadcasterDisplay = allowedIsId ? allowedLoginOrId : allowedLower;
-// Owner (the gated broadcaster) is always allowed
-  if ((loginLower && !allowedIsId && loginLower === allowedLower) || (allowedIsId && v.user_id === allowedLoginOrId)) {
+  const broadcasterDisplay = allowedIsId ? configuredLoginOrId : normalizedBroadcasterLogin;
+
+  // Owner (the gated broadcaster) is always allowed
+  if (
+    (loginLower && !allowedIsId && loginLower === normalizedBroadcasterLogin) ||
+    (allowedIsId && v.user_id === configuredLoginOrId)
+  ) {
     return { ...auth, access: { allowed: true, reason: "broadcaster" } };
   }
   // VIP allowlist
@@ -335,28 +369,58 @@ export async function requireWebsiteUser(context, { broadcasterLogin } = {}) {
   }
 
   
-  const envClientId = getEnvString(context.env, "VF_TWITCH_CLIENT_ID") || v.client_id;
-  const finalBroadcasterLogin = broadcasterDisplay;
+  // IMPORTANT: For user-token calls, the Client-ID header MUST match the app that minted the token.
+  // Using an env-provided Client-ID can accidentally mismatch (e.g., after creating a new Twitch app),
+  // which causes Helix calls to fail with 401.
+  const tokenClientId = String(v.client_id || "").trim();
+  const fallbackEnvClientId = getEnvString(context.env, "VF_TWITCH_CLIENT_ID");
+  const clientId = tokenClientId || fallbackEnvClientId;
+
+  const finalBroadcasterLogin = normalizedBroadcasterLogin;
 
   // Resolve the broadcaster id for the subscription check.
   // If VF_TWITCH_BROADCASTER_LOGIN is already a numeric id, we can skip the Helix lookup.
-  const broadcasterId = allowedIsId
-    ? allowedLoginOrId
-    : await getBroadcasterId({
-        accessToken: token,
-        clientId: envClientId,
-        broadcasterLogin: finalBroadcasterLogin,
-      });
-if (!broadcasterId) {
+  let broadcasterId = "";
+  let broadcasterLookup = null;
+
+  if (allowedIsId) {
+    broadcasterId = configuredLoginOrId;
+  } else {
+    broadcasterLookup = await resolveBroadcasterId({
+      accessToken: token,
+      clientId,
+      broadcasterLogin: finalBroadcasterLogin,
+    });
+    if (broadcasterLookup?.ok) broadcasterId = broadcasterLookup.id;
+  }
+
+  if (!broadcasterId) {
     return {
       ok: false,
-      response: jsonResponse(request, { error: "access_gate_misconfigured", message: "broadcaster_not_found" }, 500),
+      response: jsonResponse(
+        request,
+        {
+          error: "access_gate_misconfigured",
+          message: "broadcaster_not_found",
+          details:
+            broadcasterLookup && !broadcasterLookup.ok
+              ? `lookup_failed_${broadcasterLookup.status || ""}:${broadcasterLookup.error || ""}`
+              : "lookup_failed",
+          required: {
+            broadcaster: broadcasterDisplay,
+            viewerScope: REQUIRED_SUB_SCOPE,
+          },
+          hint:
+            "If you previously set VF_TWITCH_CLIENT_ID in Cloudflare Pages, it may not match your current Twitch app. This flow uses the token\u2019s client_id, so you can also remove VF_TWITCH_CLIENT_ID to avoid mismatches.",
+        },
+        500,
+      ),
     };
   }
 
   const sub = await checkUserSubscription({
     accessToken: token,
-    clientId: envClientId,
+    clientId,
     broadcasterId,
     userId: v.user_id,
   });

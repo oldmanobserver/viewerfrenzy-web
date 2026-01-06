@@ -123,7 +123,9 @@ async function init() {
     accessBody.text ||
     `Unexpected response (${accessResp.status})`;
 
-  setError(`Unable to verify access right now. ${fallback}`);
+  const extra = accessBody.json?.details ? ` (${accessBody.json.details})` : "";
+
+  setError(`Unable to verify access right now. ${fallback}${extra}`);
   setDetail("");
 }
 
