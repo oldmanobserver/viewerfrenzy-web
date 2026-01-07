@@ -62,6 +62,35 @@ export async function onRequest(context) {
     return jsonResponse(request, { ok: false, error: "Method not allowed" }, 405);
   }
 
+  // Cache: this endpoint is hit frequently (garage + Unity), and the underlying KV data
+  // changes relatively infrequently. Caching avoids repeated KV scans and makes the
+  // response effectively instant after the first request.
+  //
+  // IMPORTANT: CORS varies by Origin. Include Origin in the cache key so we don't
+  // serve the wrong Access-Control-Allow-Origin header.
+  try {
+    const origin = request.headers.get("Origin") || "";
+    const cacheUrl = new URL(request.url);
+    if (origin) cacheUrl.searchParams.set("__origin", origin);
+    const cacheKey = new Request(cacheUrl.toString(), { method: "GET" });
+
+    const cached = await caches.default.match(cacheKey);
+    if (cached) return cached;
+
+    // Compute response below and store it in cache before returning.
+    const computed = await buildPoolsResponse(request, env);
+    // Short TTL keeps admin edits reasonably fresh while still preventing stampedes.
+    computed.headers.set("Cache-Control", "public, max-age=30");
+    await caches.default.put(cacheKey, computed.clone());
+    return computed;
+  } catch {
+    // If cache API fails for any reason, fall back to normal computation.
+  }
+
+  return buildPoolsResponse(request, env);
+}
+
+async function buildPoolsResponse(request, env) {
   // If KV bindings are missing (misconfigured env), return a safe empty payload.
   if (!env.VF_KV_VEHICLE_ROLES || !env.VF_KV_VEHICLE_ASSIGNMENTS) {
     return jsonResponse(request, {
@@ -77,6 +106,14 @@ export async function onRequest(context) {
     listAllJsonRecords(env.VF_KV_VEHICLE_ROLES),
     listAllJsonRecords(env.VF_KV_VEHICLE_ASSIGNMENTS),
   ]);
+
+  const warnings = [];
+  if (rolesRaw?._meta?.truncated) {
+    warnings.push(`Vehicle roles KV had ${rolesRaw._meta.totalKeys} keys; only processed ${rolesRaw._meta.usedKeys}. Check KV binding.`);
+  }
+  if (assignsRaw?._meta?.truncated) {
+    warnings.push(`Vehicle assignments KV had ${assignsRaw._meta.totalKeys} keys; only processed ${assignsRaw._meta.usedKeys}. Check KV binding.`);
+  }
 
   const roleById = new Map();
   for (const r of rolesRaw) {
@@ -115,6 +152,7 @@ export async function onRequest(context) {
 
   const resp = {
     ok: true,
+    ...(warnings.length ? { warnings } : {}),
     generatedAt: new Date().toISOString(),
     pools: Object.fromEntries(
       COMPETITIONS.map((c) => [c, { eligibleIds: Array.from(pools[c]).sort(), defaultIds: Array.from(defaults[c]).sort() }]),
