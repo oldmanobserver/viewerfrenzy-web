@@ -3,6 +3,79 @@ import { handleOptions } from "../../../_lib/cors.js";
 import { jsonResponse } from "../../../_lib/response.js";
 import { requireWebsiteUser } from "../../../_lib/twitchAuth.js";
 
+const COMPETITIONS = ["ground", "resort", "space", "trackfield", "water", "winter"];
+
+function normalizeAssignment(raw, vehicleId) {
+  if (!raw) return null;
+  let obj = null;
+  try { obj = JSON.parse(raw); } catch { obj = null; }
+  if (!obj || typeof obj !== "object") return null;
+  const vid = String(obj.vehicleId || vehicleId || "").trim();
+  if (!vid) return null;
+
+  const roles = {};
+  const r = obj.roles;
+  if (Array.isArray(r)) {
+    for (const it of r) {
+      const rid = String(it?.roleId || "").trim().toLowerCase();
+      if (!rid) continue;
+      roles[rid] = { isDefault: Boolean(it?.isDefault) };
+    }
+  } else if (r && typeof r === "object") {
+    for (const [ridRaw, v] of Object.entries(r)) {
+      const rid = String(ridRaw || "").trim().toLowerCase();
+      if (!rid) continue;
+      roles[rid] = { isDefault: Boolean(v?.isDefault ?? v) };
+    }
+  }
+
+  return {
+    vehicleId: vid,
+    disabled: Boolean(obj.disabled),
+    roles,
+  };
+}
+
+async function validateVehicleEligibility(vehicleId, type, env) {
+  const t = String(type || "").trim().toLowerCase();
+  if (!vehicleId) return { ok: true }; // clearing default is always allowed
+  if (!COMPETITIONS.includes(t)) return { ok: true }; // unknown type => don't block
+
+  // If bindings are not configured yet, don't block (backwards compatible).
+  if (!env.VF_KV_VEHICLE_ASSIGNMENTS || !env.VF_KV_VEHICLE_ROLES) {
+    return { ok: true, skipped: "vehicle_roles_kv_not_bound" };
+  }
+
+  // If the assignment record isn't present yet, do not block.
+  // (This allows a smooth rollout before seeding is complete.)
+  const assignRaw = await env.VF_KV_VEHICLE_ASSIGNMENTS.get(vehicleId);
+  const assignment = normalizeAssignment(assignRaw, vehicleId);
+  if (!assignment) {
+    return { ok: true, skipped: "no_vehicle_assignment_record" };
+  }
+
+  if (assignment.disabled) {
+    return { ok: false, error: "vehicle_disabled" };
+  }
+
+  const roleIds = Object.keys(assignment.roles || {});
+  if (roleIds.length === 0) {
+    return { ok: false, error: "vehicle_not_assigned_to_any_role" };
+  }
+
+  // Check if any assigned role has the flag for this competition.
+  for (const rid of roleIds) {
+    const roleRaw = await env.VF_KV_VEHICLE_ROLES.get(rid);
+    if (!roleRaw) continue;
+    let role = null;
+    try { role = JSON.parse(roleRaw); } catch { role = null; }
+    if (!role || typeof role !== "object") continue;
+    if (Boolean(role[t])) return { ok: true };
+  }
+
+  return { ok: false, error: "vehicle_not_eligible_for_type", vehicleType: t };
+}
+
 function getKvForType(env, type) {
   const t = (type || "").toLowerCase();
 
@@ -58,6 +131,12 @@ export async function onRequest(context) {
 
     const vehicleIdRaw = body?.vehicleId ?? body?.selectedVehicleId ?? body?.id ?? "";
     const vehicleId = (vehicleIdRaw ?? "").toString();
+
+    // Enforce disabled / eligibility rules (role-based) when configured.
+    const eligibility = await validateVehicleEligibility(vehicleId, type, env);
+    if (!eligibility.ok) {
+      return jsonResponse(request, { ok: false, ...eligibility }, 400);
+    }
 
     const nowIso = new Date().toISOString();
 

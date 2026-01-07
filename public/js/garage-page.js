@@ -172,7 +172,7 @@ function labelForServerRecord(type, record, typeEntry) {
 
   if (!vehicleId) {
     return {
-      label: "Cleared (uses game default)",
+      label: "Cleared (uses default pool)",
       updatedAt: record?.updatedAt || "",
       kind: "cleared",
     };
@@ -215,7 +215,29 @@ async function init() {
     selectedId: null,    // currently selected vehicle id
     rotY: 0,             // preview rotation in degrees
     serverDefaults: {},  // type -> record|null|undefined
+
+    // Vehicle role pools (loaded from /api/v1/vehicle-pools)
+    // Used to filter which vehicles appear in each mode.
+    pools: null,         // response.pools
+    disabledSet: new Set(),
+    eligibleByType: new Map(),
   };
+
+  // Load vehicle eligibility pools (public, no auth)
+  try {
+    const poolsResp = await api.getVehiclePools();
+    if (poolsResp?.ok && poolsResp?.pools) {
+      state.pools = poolsResp.pools;
+      state.disabledSet = new Set(poolsResp.disabledIds || []);
+      state.eligibleByType = new Map();
+      for (const [t, v] of Object.entries(poolsResp.pools)) {
+        const ids = Array.isArray(v?.eligibleIds) ? v.eligibleIds : [];
+        state.eligibleByType.set(String(t).toLowerCase(), new Set(ids));
+      }
+    }
+  } catch {
+    // Non-fatal: fall back to showing the full catalog.
+  }
 
   // UI skeleton
   root.innerHTML = `
@@ -294,7 +316,7 @@ async function init() {
 
         <div class="vf-previewControls">
           <button id="vf-saveDefaultBtn" class="vf-btn vf-btnPrimary" type="button" style="flex: 1">Save as Default</button>
-          <button id="vf-clearDefaultBtn" class="vf-btn vf-btnSecondary" type="button" style="flex: 1">Clear Default (use game default)</button>
+          <button id="vf-clearDefaultBtn" class="vf-btn vf-btnSecondary" type="button" style="flex: 1">Clear Default (use default pool)</button>
         </div>
 
         <div id="vf-savedDefaultLabel" class="vf-muted vf-small" style="margin-top: 10px"></div>
@@ -344,7 +366,18 @@ async function init() {
 
   function filteredOptions() {
     const entry = currentTypeEntry();
-    const opts = entry?.options || [];
+    let opts = entry?.options || [];
+
+    // Role-based eligibility filter (if configured).
+    const eligibleSet = state.eligibleByType?.get(String(state.type).toLowerCase());
+    if (eligibleSet && eligibleSet.size > 0) {
+      opts = opts.filter((o) => eligibleSet.has(String(o?.id || "")));
+    }
+
+    // Always hide disabled vehicles if we have the list.
+    if (state.disabledSet && state.disabledSet.size > 0) {
+      opts = opts.filter((o) => !state.disabledSet.has(String(o?.id || "")));
+    }
     const filter = (state.search || "").trim().toLowerCase();
 
     if (!filter) return opts;

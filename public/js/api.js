@@ -79,3 +79,8 @@ export async function putVehicleDefault(type, vehicleId, auth) {
     },
   });
 }
+
+// Public: Vehicle eligibility + default pools (role-based)
+export async function getVehiclePools() {
+  return apiFetch("/api/v1/vehicle-pools", { method: "GET" });
+}
