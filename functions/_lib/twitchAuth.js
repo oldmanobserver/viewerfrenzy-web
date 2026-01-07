@@ -135,7 +135,12 @@ export async function requireTwitchUser(context) {
 // Website access gating (alpha/beta)
 // Allow if:
 //  - user is subscribed to the configured broadcaster (e.g. oldmanobserver), OR
-//  - user's login appears in /public/assets/vips.txt
+//  - user has at least one assigned role whose definition has ANY of these flags:
+//      - Admin
+//      - MOD
+//      - VIP
+//
+// Role definitions + assignments are managed on manage.viewerfrenzy.com.
 //
 // Implementation:
 //  - The browser requests the viewer scope `user:read:subscriptions` during login.
@@ -145,56 +150,120 @@ export async function requireTwitchUser(context) {
 //  - VF_TWITCH_BROADCASTER_LOGIN (e.g. "oldmanobserver")
 // Optional:
 //  - VF_TWITCH_CLIENT_ID (legacy; NOT needed for this viewer-token flow)
+//
+// Required KV bindings to support role-based VIP access:
+//  - VF_KV_ROLES
+//  - VF_KV_USER_ROLES
 // ---------------------------------------------------------------------------
 
 const DEFAULT_ALLOWED_BROADCASTER_LOGIN = "oldmanobserver";
 const REQUIRED_SUB_SCOPE = "user:read:subscriptions";
 
-let _vipCache = { fetchedAtMs: 0, set: null };
 let _broadcasterCache = { fetchedAtMs: 0, login: "", id: "" };
+let _roleDefCache = new Map(); // roleId -> { fetchedAtMs, role }
 
 function getEnvString(env, key) {
   const v = env?.[key];
   return typeof v === "string" ? v.trim() : "";
 }
 
-function parseVipText(text) {
-  const set = new Set();
-  const lines = String(text || "").split(/\r?\n/);
-  for (const raw of lines) {
-    const line = raw.trim();
-    if (!line) continue;
-    if (line.startsWith("#")) continue;
-    // allow inline comments
-    const cleaned = line.split("#")[0].trim();
-    if (!cleaned) continue;
-    set.add(cleaned.toLowerCase());
+function toBool(v) {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "number") return v !== 0;
+  if (typeof v === "string") {
+    const s = v.trim().toLowerCase();
+    if (s === "true" || s === "1" || s === "yes" || s === "y" || s === "on") return true;
+    if (s === "false" || s === "0" || s === "no" || s === "n" || s === "off") return false;
   }
-  return set;
+  return false;
 }
 
-async function loadVipSet(request) {
-  const now = Date.now();
-  if (_vipCache.set && now - _vipCache.fetchedAtMs < 60_000) return _vipCache.set;
+function uniqueLower(list) {
+  const out = [];
+  const seen = new Set();
+  for (const item of Array.isArray(list) ? list : []) {
+    const v = String(item || "").trim().toLowerCase();
+    if (!v) continue;
+    if (seen.has(v)) continue;
+    seen.add(v);
+    out.push(v);
+  }
+  return out;
+}
 
-  try {
-    const url = new URL("/assets/vips.txt", request.url).toString();
-    const resp = await fetch(url, {
-      // cache at the edge for a short time
-      cf: { cacheTtl: 60, cacheEverything: true },
-    });
-    if (resp.ok) {
-      const text = await resp.text();
-      _vipCache = { fetchedAtMs: now, set: parseVipText(text) };
-      return _vipCache.set;
-    }
-  } catch {
-    // ignore
+function normalizeRoleFlags(role, { roleId } = {}) {
+  const id = String(role?.roleId || roleId || "").trim().toLowerCase();
+
+  // Support legacy/alternate names too.
+  const isAdmin = toBool(role?.isAdmin ?? role?.admin);
+  const isMod = toBool(role?.isMod ?? role?.mod);
+  const isVip = toBool(role?.isVip ?? role?.vip);
+
+  // Back-compat: the built-in admin role is always admin.
+  if (id === "admin") {
+    return { isAdmin: true, isMod, isVip };
   }
 
-  // fallback: empty set
-  _vipCache = { fetchedAtMs: now, set: new Set() };
-  return _vipCache.set;
+  return { isAdmin, isMod, isVip };
+}
+
+async function getUserRoleIds(env, userId) {
+  if (!env?.VF_KV_USER_ROLES) return [];
+  try {
+    const rec = await env.VF_KV_USER_ROLES.get(userId, { type: "json" });
+    return uniqueLower(rec?.roles || []);
+  } catch {
+    return [];
+  }
+}
+
+async function getRoleDef(env, roleId) {
+  if (!env?.VF_KV_ROLES) return null;
+  const id = String(roleId || "").trim().toLowerCase();
+  if (!id) return null;
+
+  const now = Date.now();
+  const cached = _roleDefCache.get(id);
+  if (cached && now - cached.fetchedAtMs < 60_000) {
+    return cached.role;
+  }
+
+  try {
+    const role = await env.VF_KV_ROLES.get(id, { type: "json" });
+    _roleDefCache.set(id, { fetchedAtMs: now, role: role || null });
+    return role || null;
+  } catch {
+    _roleDefCache.set(id, { fetchedAtMs: now, role: null });
+    return null;
+  }
+}
+
+async function isVipByRoleFlags(env, userId) {
+  const roleIds = await getUserRoleIds(env, userId);
+  if (!roleIds.length) return { ok: true, allowed: false, roleIds: [] };
+
+  // Back-compat: if the user explicitly has the built-in admin role id, treat as VIP.
+  if (roleIds.includes("admin")) {
+    return { ok: true, allowed: true, roleIds, reason: "vip_role_admin" };
+  }
+
+  // If roles KV isn't bound, we can't evaluate flags.
+  if (!env?.VF_KV_ROLES) {
+    return { ok: true, allowed: false, roleIds };
+  }
+
+  const defs = await Promise.all(roleIds.map((id) => getRoleDef(env, id)));
+
+  for (let i = 0; i < roleIds.length; i++) {
+    const id = roleIds[i];
+    const role = defs[i];
+    const flags = normalizeRoleFlags(role, { roleId: id });
+    if (flags.isAdmin || flags.isMod || flags.isVip) {
+      return { ok: true, allowed: true, roleIds, reason: "vip_role" };
+    }
+  }
+
+  return { ok: true, allowed: false, roleIds };
 }
 
 function isValidTwitchLogin(login) {
@@ -301,7 +370,7 @@ async function checkUserSubscription({ accessToken, clientId, broadcasterId, use
 
 /**
  * Like requireTwitchUser, but also enforces alpha/beta website access.
- * Returns 403 if the user is not subscribed (or missing the required scope) and not in vips.txt.
+ * Returns 403 if the user is not subscribed (or missing the required scope) and not a VIP-by-role.
  */
 export async function requireWebsiteUser(context, { broadcasterLogin } = {}) {
   const auth = await requireTwitchUser(context);
@@ -340,10 +409,17 @@ export async function requireWebsiteUser(context, { broadcasterLogin } = {}) {
   ) {
     return { ...auth, access: { allowed: true, reason: "broadcaster" } };
   }
-  // VIP allowlist
-  const vipSet = await loadVipSet(request);
-  if (loginLower && vipSet.has(loginLower)) {
-    return { ...auth, access: { allowed: true, reason: "vip_allowlist" } };
+  // VIP-by-role: if the user has any assigned role flagged as Admin, MOD, or VIP,
+  // they bypass the subscriber-only gate.
+  const vip = await isVipByRoleFlags(context.env, v.user_id);
+  if (vip?.allowed) {
+    return {
+      ...auth,
+      access: {
+        allowed: true,
+        reason: vip.reason || "vip_role",
+      },
+    };
   }
 
   // Subscription check (viewer token)
@@ -478,7 +554,7 @@ export async function requireWebsiteUser(context, { broadcasterLogin } = {}) {
         required: {
           broadcaster: finalBroadcasterLogin,
           viewerScope: REQUIRED_SUB_SCOPE,
-          vipFile: "/assets/vips.txt",
+          vipAccess: "Any assigned role flagged Admin, MOD, or VIP",
         },
       },
       403,

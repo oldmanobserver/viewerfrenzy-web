@@ -10,7 +10,7 @@ export async function onRequest(context) {
   if (opt) return opt;
 
   // This already enforces:
-  // - VIP allowlist (vips.txt)
+  // - VIP-by-role access (Admin/MOD/VIP flags)
   // - Subscriber-to-broadcaster check (using the viewer's own token + user:read:subscriptions)
   // - Friendly 403 message that includes VF_TWITCH_BROADCASTER_LOGIN
   // - 500 if VF_TWITCH_BROADCASTER_LOGIN is missing (after your earlier edits)
