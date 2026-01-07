@@ -59,21 +59,18 @@ export async function onRequest(context) {
   if (opt) return opt;
 
   if (request.method !== "GET") {
-    return jsonResponse({ ok: false, error: "Method not allowed" }, { status: 405 });
+    return jsonResponse(request, { ok: false, error: "Method not allowed" }, 405);
   }
 
   // If KV bindings are missing (misconfigured env), return a safe empty payload.
   if (!env.VF_KV_VEHICLE_ROLES || !env.VF_KV_VEHICLE_ASSIGNMENTS) {
-    return jsonResponse(
-      {
-        ok: true,
-        warning: "KV bindings missing: VF_KV_VEHICLE_ROLES / VF_KV_VEHICLE_ASSIGNMENTS",
-        generatedAt: new Date().toISOString(),
-        pools: Object.fromEntries(COMPETITIONS.map((c) => [c, { eligibleIds: [], defaultIds: [] }])),
-        disabledIds: [],
-      },
-      { headers: { "Cache-Control": "no-store" } },
-    );
+    return jsonResponse(request, {
+      ok: true,
+      warning: "KV bindings missing: VF_KV_VEHICLE_ROLES / VF_KV_VEHICLE_ASSIGNMENTS",
+      generatedAt: new Date().toISOString(),
+      pools: Object.fromEntries(COMPETITIONS.map((c) => [c, { eligibleIds: [], defaultIds: [] }])),
+      disabledIds: [],
+    });
   }
 
   const [rolesRaw, assignsRaw] = await Promise.all([
@@ -125,5 +122,5 @@ export async function onRequest(context) {
     disabledIds: Array.from(disabledIds).sort(),
   };
 
-  return jsonResponse(resp, { headers: { "Cache-Control": "no-store" } });
+  return jsonResponse(request, resp);
 }
