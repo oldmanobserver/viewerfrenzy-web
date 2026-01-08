@@ -6,8 +6,12 @@
 // This file is intentionally plain JS (no bundler). Cloudflare Pages will serve it as a static asset.
 
 window.VF_CONFIG = {
-  twitchClientId: "6kx9k44jtil58jgxtemvmrcc45rfxw",
-  // Required for alpha/beta access gating (so the server can verify the viewer subscribes to the configured broadcaster).
-  // You may add additional scopes separated by spaces. Example: "user:read:subscriptions user:read:email"
-  twitchScopes: "user:read:subscriptions",
+  // RECOMMENDED: leave this blank and configure TWITCH_CLIENT_ID in Cloudflare Pages environment variables.
+  // The frontend will fetch /api/v1/public-config to obtain the right value for prod/dev deployments.
+  twitchClientId: "",
+
+  // Optional additional scopes (space-delimited). The site will always request the required
+  // website scope: user:read:subscriptions.
+  // You can also set TWITCH_SCOPES in Cloudflare Pages environment variables.
+  twitchScopes: "",
 };
