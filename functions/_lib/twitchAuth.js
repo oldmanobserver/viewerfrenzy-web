@@ -1,5 +1,6 @@
 // functions/_lib/twitchAuth.js
 import { jsonResponse } from "./response.js";
+import { verifyJwtHs256 } from "./vfJwt.js";
 
 /**
  * Extracts a Twitch user access token.
@@ -12,6 +13,65 @@ export function getAuthToken(request) {
   if (h.startsWith("Bearer ")) return h.slice("Bearer ".length).trim();
   if (h.startsWith("OAuth ")) return h.slice("OAuth ".length).trim();
   return "";
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function nowUnix() {
+  return Math.floor(Date.now() / 1000);
+}
+
+function normalizeArrayStrings(v) {
+  if (!Array.isArray(v)) return [];
+  return v.map((x) => String(x || "").trim()).filter(Boolean);
+}
+
+async function tryAuthFromVfJwt(context, token) {
+  const secret = String(context?.env?.VF_JWT_SECRET || "").trim();
+  if (!secret) return null;
+
+  const verified = await verifyJwtHs256(token, secret).catch(() => null);
+  if (!verified?.ok) return null;
+
+  const p = verified.payload || {};
+
+  // Optional audience/issuer checks (won't break older tokens if omitted).
+  if (p.iss && p.iss !== "viewerfrenzy") return null;
+  if (p.aud && p.aud !== "viewerfrenzy-web") return null;
+
+  const userId = String(p.userId || p.sub || "").trim();
+  const login = String(p.login || "").trim();
+  if (!userId) return null;
+
+  const exp = Number(p.exp || 0);
+  const expiresIn = exp ? Math.max(0, exp - nowUnix()) : 0;
+
+  const record = {
+    userId,
+    login,
+    clientId: String(p.clientId || "vf_jwt").trim(),
+    scopes: normalizeArrayStrings(p.scopes),
+    expiresIn,
+    lastSeenAt: nowIso(),
+    helixUser: p.helixUser || null,
+  };
+
+  return {
+    ok: true,
+    token,
+    validated: {
+      client_id: record.clientId,
+      login: record.login,
+      user_id: record.userId,
+      expires_in: expiresIn,
+      scopes: record.scopes,
+    },
+    user: record,
+    access: p.access || { allowed: true, reason: "session" },
+    vfSession: true,
+  };
 }
 
 /**
@@ -93,6 +153,21 @@ export async function requireTwitchUser(context) {
   const token = getAuthToken(request);
   if (!token) {
     return { ok: false, response: jsonResponse(request, { error: "missing_authorization" }, 401) };
+  }
+
+  // ViewerFrenzy session JWT (VF JWT) support
+  // If the token is already a VF session, we can authenticate without calling Twitch.
+  const vf = await tryAuthFromVfJwt(context, token);
+  if (vf?.ok) {
+    // Best-effort KV write for lastSeen/profile
+    try {
+      if (env?.VF_KV_USERS) {
+        await env.VF_KV_USERS.put(vf.user.userId, JSON.stringify(vf.user));
+      }
+    } catch {
+      // ignore
+    }
+    return vf;
   }
 
   const validated = await validateTwitchToken(token);
@@ -373,10 +448,32 @@ async function checkUserSubscription({ accessToken, clientId, broadcasterId, use
  * Returns 403 if the user is not subscribed (or missing the required scope) and not a VIP-by-role.
  */
 export async function requireWebsiteUser(context, { broadcasterLogin } = {}) {
+  const { request } = context;
+
+  // Fast path: if the caller already has a ViewerFrenzy session JWT,
+  // validate it locally and skip Twitch calls.
+  const rawToken = getAuthToken(request);
+  if (!rawToken) {
+    return { ok: false, response: jsonResponse(request, { error: "missing_authorization" }, 401) };
+  }
+
+  const vf = await tryAuthFromVfJwt(context, rawToken);
+  if (vf?.ok) {
+    // Optional best-effort KV write (keeps the USERS KV warm for admin tools)
+    try {
+      if (context?.env?.VF_KV_USERS) {
+        await context.env.VF_KV_USERS.put(vf.user.userId, JSON.stringify(vf.user));
+      }
+    } catch {
+      // ignore
+    }
+    return vf;
+  }
+
+  // Otherwise fall back to Twitch user token validation + gating.
   const auth = await requireTwitchUser(context);
   if (!auth.ok) return auth;
 
-  const { request } = context;
   const token = auth.token;
   const v = auth.validated;
   const user = auth.user;

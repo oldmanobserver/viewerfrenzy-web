@@ -34,10 +34,10 @@ async function init() {
 
   setStatus("");
 
-  btn?.addEventListener("click", () => {
+  btn?.addEventListener("click", async () => {
     try {
       setError("");
-      auth.beginLoginRedirect();
+      await auth.beginLoginRedirect();
     } catch (e) {
       setError(e?.message || String(e));
     }

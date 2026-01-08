@@ -4,6 +4,8 @@
 const ALLOWED_ORIGINS = new Set([
   "https://viewerfrenzy.com",
   "https://www.viewerfrenzy.com",
+  "https://dev.viewerfrenzy.com",
+  "https://www.dev.viewerfrenzy.com",
   "http://localhost:8788",
   "http://localhost:3000",
 ]);

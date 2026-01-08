@@ -10,6 +10,44 @@ export function getConfig() {
   };
 }
 
+let _configPromise = null;
+
+async function getConfigAsync() {
+  const existing = window.VF_CONFIG || {};
+  const twitchClientId = (existing.twitchClientId || "").trim();
+  const twitchScopes = (existing.twitchScopes || "").trim();
+
+  if (twitchClientId) {
+    return { twitchClientId, twitchScopes };
+  }
+
+  if (_configPromise) return _configPromise;
+
+  _configPromise = (async () => {
+    const res = await fetch("/api/v1/public-config", {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to load config from /api/v1/public-config: ${res.status} ${res.statusText}`);
+    }
+
+    const data = await res.json().catch(() => ({}));
+
+    const cfg = {
+      twitchClientId: (data.twitchClientId || "").trim(),
+      twitchScopes: (data.twitchScopes || "").trim(),
+    };
+
+    // Cache it for the rest of this browser session
+    window.VF_CONFIG = { ...(window.VF_CONFIG || {}), ...cfg };
+    return cfg;
+  })();
+
+  return _configPromise;
+}
+
 export function getRedirectUri() {
   return `${window.location.origin}/callback.html`;
 }
@@ -26,11 +64,11 @@ function randomState() {
   }
 }
 
-export function buildAuthorizeUrl() {
-  const cfg = getConfig();
+export async function buildAuthorizeUrl() {
+  const cfg = await getConfigAsync();
   if (!cfg.twitchClientId || cfg.twitchClientId === "YOUR_TWITCH_CLIENT_ID") {
     throw new Error(
-      "Twitch client id not set. Edit /public/config.js and set window.VF_CONFIG.twitchClientId.",
+      "Twitch client id not set. Set TWITCH_CLIENT_ID in Cloudflare Pages environment variables (recommended) or set window.VF_CONFIG.twitchClientId in /public/config.js.",
     );
   }
 
@@ -62,8 +100,8 @@ export function buildAuthorizeUrl() {
   };
 }
 
-export function beginLoginRedirect() {
-  const { url } = buildAuthorizeUrl();
+export async function beginLoginRedirect() {
+  const { url } = await buildAuthorizeUrl();
   window.location.assign(url);
 }
 
@@ -105,6 +143,19 @@ export function setAuthFromCallback({ accessToken, tokenType, scope, expiresInSe
     scope: scope || "",
     obtainedAtUnix: now,
     expiresAtUnix,
+  });
+}
+
+// Preferred: after Twitch login, exchange Twitch token for a ViewerFrenzy session token (VF JWT)
+// and store that instead of the Twitch token.
+export function setAuthFromVfSession({ token, expiresAtUnix }) {
+  const now = Math.floor(Date.now() / 1000);
+  saveAuth({
+    accessToken: token,
+    tokenType: "vf",
+    scope: "",
+    obtainedAtUnix: now,
+    expiresAtUnix: Number(expiresAtUnix || 0),
   });
 }
 

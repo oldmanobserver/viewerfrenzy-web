@@ -1,4 +1,4 @@
-import { clearExpectedState, readExpectedState, setAuthFromCallback } from "./auth.js";
+import { clearExpectedState, readExpectedState, setAuthFromVfSession, logout } from "./auth.js";
 
 const elStatus = document.getElementById("vf-cbStatus");
 const elError = document.getElementById("vf-cbError");
@@ -52,14 +52,52 @@ function parseHashParams() {
       return;
     }
 
-    setStatus("Saving session…");
+    setStatus("Exchanging session…");
 
-    setAuthFromCallback({
-      accessToken,
-      tokenType,
-      scope,
-      expiresInSeconds: expiresIn ? Number(expiresIn) : 0,
+    const exRes = await fetch("/api/v1/auth/twitch/exchange", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      cache: "no-store",
     });
+
+    const exBodyText = await exRes.text();
+    let exBody = null;
+    try { exBody = exBodyText ? JSON.parse(exBodyText) : null; } catch { exBody = null; }
+
+    if (!exRes.ok) {
+      // Access denied -> send to the friendly no-access page.
+      if (exRes.status === 403) {
+        const msg = exBody?.message || "Access is currently restricted during alpha/beta.";
+        const broadcaster = exBody?.required?.broadcaster || "";
+        const detail = exBody?.details || "";
+        try { logout(); } catch {}
+        const u =
+          `${window.location.origin}/no-access.html?msg=${encodeURIComponent(msg)}` +
+          (broadcaster ? `&broadcaster=${encodeURIComponent(broadcaster)}` : "") +
+          (detail ? `&detail=${encodeURIComponent(detail)}` : "");
+        window.location.replace(u);
+        return;
+      }
+
+      const msg = exBody?.message || exBody?.error || exBodyText || `Exchange failed (${exRes.status})`;
+      showError(msg);
+      setStatus("");
+      return;
+    }
+
+    const vfToken = exBody?.token || "";
+    const expiresAtUnix = Number(exBody?.expiresAtUnix || 0);
+
+    if (!vfToken) {
+      showError("Exchange succeeded but no session token was returned.");
+      setStatus("");
+      return;
+    }
+
+    setAuthFromVfSession({ token: vfToken, expiresAtUnix });
 
     setStatus("Redirecting…");
 
