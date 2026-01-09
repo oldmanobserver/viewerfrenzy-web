@@ -70,3 +70,5 @@ The web Garage reads `/public/data/vehicleCatalog.json`.
 
 - Space options are generated from Unity’s `Resources/VF/SpaceShipCatalog.json` in this repo.
 - Ground options are an MVP placeholder in this build — add your real ground vehicle prefab IDs so they match what Unity expects.
+
+pushing a build
