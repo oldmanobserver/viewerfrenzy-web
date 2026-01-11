@@ -240,6 +240,7 @@ function renderHeader(state, cols) {
           const isActive = state.sortBy === c.key;
           const icon = !isActive ? "" : state.sortDir === "asc" ? " ▲" : " ▼";
           const sticky = c.key === "viewer" ? " vf-stickyCol" : "";
+          const alignCls = c.key === "viewer" ? " vf-thViewer" : " vf-thNum";
 
           const top = c.headerTop || c.key;
           const bottom = c.headerBottom || "";
@@ -247,7 +248,7 @@ function renderHeader(state, cols) {
             ? `<div class="vf-thTop">${escapeHtml(top)}</div><div class="vf-thBottom">${escapeHtml(bottom)}</div>`
             : `<div class="vf-thTop">${escapeHtml(top)}</div>`;
 
-          return `<th class="vf-th${sticky}" data-sort="${escapeHtml(c.key)}" title="${escapeHtml(c.title || top)}">${twoLine}<span class="vf-sortIcon">${escapeHtml(icon)}</span></th>`;
+          return `<th class="vf-th${alignCls}${sticky}" data-sort="${escapeHtml(c.key)}" title="${escapeHtml(c.title || top)}">${twoLine}<span class="vf-sortIcon">${escapeHtml(icon)}</span></th>`;
         })
         .join("")}
     </tr>
@@ -456,11 +457,6 @@ async function init() {
         </label>
 
         <label class="vf-field">
-          <span class="vf-fieldLabel">Map</span>
-          <select id="vf-map" class="vf-input" style="max-width: 320px"></select>
-        </label>
-
-        <label class="vf-field">
           <span class="vf-fieldLabel">Mode</span>
           <select id="vf-vehicleType" class="vf-input vf-inputSmall">
             <option value="ALL" selected>All</option>
@@ -468,6 +464,11 @@ async function init() {
             <option value="resort">Resort</option>
             <option value="space">Space</option>
           </select>
+        </label>
+
+        <label class="vf-field">
+          <span class="vf-fieldLabel">Map</span>
+          <select id="vf-map" class="vf-input" style="max-width: 320px"></select>
         </label>
 
         <label class="vf-field">
@@ -561,20 +562,77 @@ async function init() {
   const colsModal = document.getElementById("vf-colsModal");
   const colsBody = document.getElementById("vf-colsBody");
 
+  function renderMapsDropdown() {
+    if (!mapSel) return;
+
+    const sorted = [...(state.meta.maps || [])].sort((a, b) => {
+      const la = String(a?.trackName || a?.trackId || "").toLowerCase();
+      const lb = String(b?.trackName || b?.trackId || "").toLowerCase();
+      return la.localeCompare(lb);
+    });
+
+    const validIds = new Set(sorted.map((m) => normalizeId(m?.trackId)).filter(Boolean));
+    if (state.mapId !== "ALL" && state.mapId && !validIds.has(state.mapId)) {
+      state.mapId = "ALL";
+    }
+
+    mapSel.innerHTML = [
+      toOption("All maps", "ALL"),
+      ...sorted.map((m) => {
+        const id = normalizeId(m?.trackId);
+        const name = normalizeId(m?.trackName) || id;
+        const label = id && name && name !== id ? `${name} (${id})` : (name || id);
+        return toOption(label, id);
+      }),
+    ].join("");
+
+    mapSel.value = state.mapId || "ALL";
+  }
+
+  let _mapsReqToken = 0;
+  async function refreshMapsForMode() {
+    const token = ++_mapsReqToken;
+    try {
+      const metaResp = await api.getStatsMeta({ vehicleType: state.vehicleType || "ALL" }).catch(() => null);
+      if (token !== _mapsReqToken) return;
+      state.meta.maps = Array.isArray(metaResp?.maps) ? metaResp.maps : [];
+      renderMapsDropdown();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   async function refreshMeta() {
     const [activeSeasonId, seasonsResp, metaResp] = await Promise.all([
       fetchActiveSeasonId(),
       api.getSeasons().catch(() => null),
-      api.getStatsMeta().catch(() => null),
+      api.getStatsMeta({ vehicleType: state.vehicleType || "ALL" }).catch(() => null),
     ]);
 
     state.meta.activeSeasonId = activeSeasonId || "";
-    state.meta.seasons = Array.isArray(seasonsResp?.seasons) ? seasonsResp.seasons : [];
+
+    // Exclude future seasons from the Season dropdown.
+    // Use the server-reported "now" timestamp when available.
+    const nowMs = Date.parse(seasonsResp?.now || "") || Date.now();
+    const seasonsAll = Array.isArray(seasonsResp?.seasons) ? seasonsResp.seasons : [];
+    const seasonsForDropdown = seasonsAll.filter((s) => {
+      const startMs = Date.parse(s?.startAt || "");
+      // If a season is missing/invalid startAt, keep it (admin data issue, but don't hide it).
+      if (!Number.isFinite(startMs) || startMs <= 0) return true;
+      return startMs <= nowMs;
+    });
+    state.meta.seasons = seasonsForDropdown;
     state.meta.streamers = Array.isArray(metaResp?.streamers) ? metaResp.streamers : [];
     state.meta.maps = Array.isArray(metaResp?.maps) ? metaResp.maps : [];
 
     // Default season = current season if available.
     if (!state.seasonId) {
+      state.seasonId = state.meta.activeSeasonId || "ALL";
+    }
+
+    // If the selected season is in the future (or no longer exists), reset to current season.
+    const allowedSeasonIds = new Set(state.meta.seasons.map((s) => normalizeId(s?.seasonId)).filter(Boolean));
+    if (state.seasonId !== "ALL" && state.seasonId && !allowedSeasonIds.has(state.seasonId)) {
       state.seasonId = state.meta.activeSeasonId || "ALL";
     }
 
@@ -610,23 +668,7 @@ async function init() {
     }
 
     // Maps dropdown
-    if (mapSel) {
-      const sorted = [...state.meta.maps].sort((a, b) => {
-        const la = String(a?.trackName || a?.trackId || "").toLowerCase();
-        const lb = String(b?.trackName || b?.trackId || "").toLowerCase();
-        return la.localeCompare(lb);
-      });
-      mapSel.innerHTML = [
-        toOption("All maps", "ALL"),
-        ...sorted.map((m) => {
-          const id = normalizeId(m?.trackId);
-          const name = normalizeId(m?.trackName) || id;
-          const label = id && name && name !== id ? `${name} (${id})` : (name || id);
-          return toOption(label, id);
-        }),
-      ].join("");
-      mapSel.value = state.mapId;
-    }
+    renderMapsDropdown();
 
     // Mode dropdown (static options)
     if (vehicleTypeSel) {
@@ -819,8 +861,10 @@ async function init() {
     scheduleReload(true);
   });
 
-  vehicleTypeSel?.addEventListener("change", () => {
+  vehicleTypeSel?.addEventListener("change", async () => {
     state.vehicleType = vehicleTypeSel.value || "ALL";
+    // When switching modes, only show maps that exist for the selected mode.
+    await refreshMapsForMode();
     scheduleReload(true);
   });
 

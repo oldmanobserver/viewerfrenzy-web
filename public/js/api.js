@@ -91,8 +91,15 @@ export async function getSeasons() {
 }
 
 // Public: Stats meta (distinct streamers + maps)
-export async function getStatsMeta() {
-  return apiFetch("/api/v1/stats/meta", { method: "GET" });
+export async function getStatsMeta(query = {}) {
+  const u = new URL("/api/v1/stats/meta", window.location.origin);
+  for (const [k, v] of Object.entries(query || {})) {
+    if (v === undefined || v === null) continue;
+    const s = String(v).trim();
+    if (!s) continue;
+    u.searchParams.set(k, s);
+  }
+  return apiFetch(u.pathname + (u.search ? u.search : ""), { method: "GET" });
 }
 
 // Public: Leaderboard / stats

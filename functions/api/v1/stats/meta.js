@@ -49,6 +49,10 @@ export async function onRequest(context) {
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
+  const url = new URL(request.url);
+  const vehicleTypeRaw = String(url.searchParams.get("vehicleType") || "").trim().toLowerCase();
+  const vehicleType = vehicleTypeRaw && vehicleTypeRaw !== "all" ? vehicleTypeRaw : "";
+
   let streamers;
   let maps;
   try {
@@ -68,18 +72,20 @@ export async function onRequest(context) {
     ).all();
 
     // Distinct maps (track_id). Keep the latest non-empty track_name if available.
-    maps = await env.VF_D1_STATS.prepare(
-      `
-        SELECT
-          map_id AS trackId,
-          COALESCE(NULLIF(MAX(COALESCE(map_name, '')), ''), map_id) AS trackName,
-          COUNT(*) AS competitions
-        FROM competitions
-        WHERE map_id IS NOT NULL AND TRIM(map_id) <> ''
-        GROUP BY map_id
-        ORDER BY LOWER(trackName) ASC;
-      `,
-    ).all();
+    // If a vehicleType filter is supplied, only return maps with competitions in that mode.
+    const mapSql = `
+      SELECT
+        map_id AS trackId,
+        COALESCE(NULLIF(MAX(COALESCE(map_name, '')), ''), map_id) AS trackName,
+        COUNT(*) AS competitions
+      FROM competitions
+      WHERE map_id IS NOT NULL AND TRIM(map_id) <> ''
+        ${vehicleType ? "AND LOWER(TRIM(vehicle_type)) = ?" : ""}
+      GROUP BY map_id
+      ORDER BY LOWER(trackName) ASC;
+    `;
+    const mapStmt = env.VF_D1_STATS.prepare(mapSql);
+    maps = vehicleType ? await mapStmt.bind(vehicleType).all() : await mapStmt.all();
   } catch (e) {
     // Most common cause: DB not initialized yet (missing tables).
     return json(

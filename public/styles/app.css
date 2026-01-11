@@ -732,8 +732,14 @@ select.vf-input optgroup {
 .vf-table td {
   padding: 10px 10px;
   border-bottom: 1px solid rgba(255,255,255,0.10);
+  border-right: 1px solid rgba(255,255,255,0.08);
   font-size: 12px;
   white-space: nowrap;
+}
+
+/* Remove the last vertical border in each row */
+.vf-table tr > *:last-child {
+  border-right: none;
 }
 
 .vf-table thead th {
@@ -743,6 +749,15 @@ select.vf-input optgroup {
   background: rgba(255,255,255,0.04);
   cursor: pointer;
   user-select: none;
+}
+
+/* Right align numeric headers so they match right-aligned numeric cells */
+.vf-table thead th.vf-thNum {
+  text-align: right;
+}
+
+.vf-table thead th.vf-thViewer {
+  text-align: left;
 }
 
 /* Two-line header labels */
@@ -774,6 +789,7 @@ select.vf-input optgroup {
   letter-spacing: 0.03em;
   text-transform: uppercase;
   cursor: default;
+  text-align: center;
 }
 
 .vf-thGroup {
@@ -853,6 +869,7 @@ select.vf-input optgroup {
   z-index: 4;
   background: rgba(0,0,0,0.35);
   backdrop-filter: blur(2px);
+  border-right: 1px solid rgba(255,255,255,0.16);
 }
 
 /* Ensure striped background still looks right on sticky cells */
