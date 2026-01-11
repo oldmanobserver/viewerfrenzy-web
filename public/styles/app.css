@@ -692,10 +692,21 @@ a { color: inherit; }
   background: rgba(0,0,0,0.18);
 }
 
+/* Taller scroll container (used by Stats page) so sticky headers work nicely */
+.vf-tableWrapTall {
+  max-height: 68vh;
+  overflow: auto;
+}
+
 .vf-table {
   width: 100%;
   border-collapse: collapse;
   min-width: 1180px; /* allow horizontal scroll for many columns */
+}
+
+/* Allow a slightly narrower table when users hide most columns */
+.vf-tableStriped {
+  min-width: 980px;
 }
 
 .vf-table th,
@@ -715,17 +726,202 @@ a { color: inherit; }
   user-select: none;
 }
 
+/* Two-line header labels */
+.vf-thTop {
+  font-size: 12px;
+  line-height: 1.1;
+}
+
+.vf-thBottom {
+  margin-top: 2px;
+  font-size: 10px;
+  line-height: 1.1;
+  color: rgba(255,255,255,0.70);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.vf-sortIcon {
+  margin-left: 4px;
+  opacity: 0.9;
+}
+
+/* Optional grouped header row */
+.vf-thGroupRow th {
+  background: rgba(255,255,255,0.025);
+  color: rgba(255,255,255,0.70);
+  font-weight: 900;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: default;
+}
+
+.vf-thGroup {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
 .vf-table tbody tr:hover td {
   background: rgba(255,255,255,0.03);
+}
+
+/* Alternating row color */
+.vf-tableStriped tbody tr:nth-child(even) td {
+  background: rgba(255,255,255,0.02);
+}
+
+.vf-tableStriped tbody tr:hover td {
+  background: rgba(255,255,255,0.05);
 }
 
 .vf-tdViewer {
   font-weight: 800;
 }
 
+/* Viewer cell (avatar + name) */
+.vf-viewerCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vf-viewerText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vf-viewerName {
+  font-weight: 900;
+}
+
+.vf-viewerSub {
+  font-size: 11px;
+  color: rgba(255,255,255,0.70);
+}
+
+.vf-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  object-fit: cover;
+  background: rgba(255,255,255,0.04);
+}
+
+.vf-avatarPlaceholder {
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+}
+
 .vf-tdNum {
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+/* Sticky header + sticky first column (Stats page) */
+.vf-tableSticky thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.vf-stickyCol {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(2px);
+}
+
+/* Ensure striped background still looks right on sticky cells */
+.vf-tableStriped tbody tr:nth-child(even) td.vf-stickyCol {
+  background: rgba(0,0,0,0.28);
+}
+
+.vf-tableStriped tbody tr:hover td.vf-stickyCol {
+  background: rgba(0,0,0,0.42);
+}
+
+.vf-tableSticky thead th.vf-stickyCol {
+  z-index: 6;
+}
+
+/* ---------- MODAL (Stats Columns) ---------- */
+
+.vf-modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.58);
+  backdrop-filter: blur(3px);
+  z-index: 2000;
+}
+
+.vf-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(860px, calc(100vw - 32px));
+  max-height: calc(100vh - 72px);
+  overflow: auto;
+  z-index: 2001;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(10, 12, 18, 0.96);
+  padding: 16px;
+  box-shadow: 0 18px 70px rgba(0,0,0,0.55);
+}
+
+.vf-colsBody {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.vf-colsGroup {
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255,255,255,0.03);
+}
+
+.vf-colsGroupTitle {
+  font-weight: 950;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+}
+
+.vf-colsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+@media (max-width: 760px) {
+  .vf-colsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.vf-checkRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.16);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.vf-checkRow:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+.vf-checkLabel {
+  font-weight: 850;
 }
 
 .vf-table thead th:hover {

@@ -2,6 +2,10 @@ import { requireSession } from "./session.js";
 import * as api from "./api.js";
 import { toast } from "./ui.js";
 
+// Per-user column preferences live in localStorage.
+// Versioned so we can migrate/ignore old formats safely later.
+const COL_PREFS_VERSION = 1;
+
 function escapeHtml(s) {
   return String(s)
     .replaceAll("&", "&amp;")
@@ -55,6 +59,43 @@ function normalizeId(s) {
   return String(s || "").trim();
 }
 
+function getColumnPrefsKey(userId) {
+  const id = String(userId || "").trim() || "anonymous";
+  return `vf_stats_cols_v${COL_PREFS_VERSION}:${id}`;
+}
+
+function loadColumnPrefs(userId, allKeys) {
+  try {
+    const raw = localStorage.getItem(getColumnPrefsKey(userId));
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    const visible = Array.isArray(data?.visible) ? data.visible : null;
+    if (!visible) return null;
+
+    const allow = new Set(allKeys);
+    const cleaned = visible.map((k) => String(k || "").trim()).filter((k) => allow.has(k));
+
+    // Always keep viewer column.
+    if (!cleaned.includes("viewer")) cleaned.unshift("viewer");
+    return Array.from(new Set(cleaned));
+  } catch {
+    return null;
+  }
+}
+
+function saveColumnPrefs(userId, visibleKeys) {
+  try {
+    const payload = {
+      v: COL_PREFS_VERSION,
+      visible: Array.from(new Set(visibleKeys || [])).map((k) => String(k || "").trim()),
+      updatedAtMs: Date.now(),
+    };
+    localStorage.setItem(getColumnPrefsKey(userId), JSON.stringify(payload));
+  } catch {
+    // ignore (private mode / storage disabled)
+  }
+}
+
 let _loadTimer = null;
 
 async function fetchActiveSeasonId() {
@@ -84,51 +125,160 @@ function buildQuery(state) {
   return q;
 }
 
-const COLUMNS = [
-  { key: "viewer", label: "Viewer", title: "Viewer", type: "text" },
-  { key: "competitions", label: "#Comp", title: "Number of competitions" },
-  { key: "wins", label: "#1", title: "Wins / 1st place" },
-  { key: "seconds", label: "#2", title: "2nd place" },
-  { key: "thirds", label: "#3", title: "3rd place" },
-  { key: "bestFinishPos", label: "BestPos", title: "Best finish position" },
-  { key: "worstFinishPos", label: "WorstPos", title: "Worst finish position" },
-  { key: "avgFinishPos", label: "AvgPos", title: "Average finish position" },
-  { key: "medianFinishPos", label: "MedPos", title: "Median finish position" },
-  { key: "p10FinishPos", label: "P10Pos", title: "10th percentile finish position" },
-  { key: "p25FinishPos", label: "P25Pos", title: "25th percentile finish position" },
-  { key: "p75FinishPos", label: "P75Pos", title: "75th percentile finish position" },
-  { key: "p90FinishPos", label: "P90Pos", title: "90th percentile finish position" },
-  { key: "finishedCount", label: "Fin", title: "Finished count" },
-  { key: "dnfCount", label: "DNF", title: "DNF count" },
-  { key: "bestTimeMs", label: "BestT", title: "Best finish time" },
-  { key: "worstTimeMs", label: "WorstT", title: "Worst finish time" },
-  { key: "avgTimeMs", label: "AvgT", title: "Average finish time" },
-  { key: "medianTimeMs", label: "MedT", title: "Median finish time" },
-  { key: "p10TimeMs", label: "P10T", title: "10th percentile finish time" },
-  { key: "p25TimeMs", label: "P25T", title: "25th percentile finish time" },
-  { key: "p75TimeMs", label: "P75T", title: "75th percentile finish time" },
-  { key: "p90TimeMs", label: "P90T", title: "90th percentile finish time" },
+// Column definitions
+// - headerTop/headerBottom render as a 2-line header (compact but readable)
+// - group is used for the optional grouped header row
+const COLUMN_DEFS = [
+  { key: "viewer", group: "Viewer", headerTop: "Viewer", title: "Viewer" , always: true },
+
+  { key: "competitions", group: "Counts", headerTop: "#", headerBottom: "Races", title: "Number of competitions" },
+  { key: "wins", group: "Counts", headerTop: "#1", headerBottom: "Wins", title: "Wins / 1st place" },
+  { key: "seconds", group: "Counts", headerTop: "#2", headerBottom: "2nd", title: "2nd place finishes" },
+  { key: "thirds", group: "Counts", headerTop: "#3", headerBottom: "3rd", title: "3rd place finishes" },
+  { key: "finishedCount", group: "Counts", headerTop: "Fin", headerBottom: "#", title: "Finished count" },
+  { key: "dnfCount", group: "Counts", headerTop: "DNF", headerBottom: "#", title: "DNF count" },
+
+  { key: "bestFinishPos", group: "Finish position", headerTop: "Best", headerBottom: "Pos", title: "Best finish position" },
+  { key: "avgFinishPos", group: "Finish position", headerTop: "Avg", headerBottom: "Pos", title: "Average finish position" },
+  { key: "medianFinishPos", group: "Finish position", headerTop: "Med", headerBottom: "Pos", title: "Median finish position" },
+  { key: "p10FinishPos", group: "Finish position", headerTop: "P10", headerBottom: "Pos", title: "10th percentile finish position" },
+  { key: "p25FinishPos", group: "Finish position", headerTop: "P25", headerBottom: "Pos", title: "25th percentile finish position" },
+  { key: "p75FinishPos", group: "Finish position", headerTop: "P75", headerBottom: "Pos", title: "75th percentile finish position" },
+  { key: "p90FinishPos", group: "Finish position", headerTop: "P90", headerBottom: "Pos", title: "90th percentile finish position" },
+  { key: "worstFinishPos", group: "Finish position", headerTop: "Worst", headerBottom: "Pos", title: "Worst finish position" },
+
+  { key: "bestTimeMs", group: "Finish time", headerTop: "Best", headerBottom: "Time", title: "Best finish time" },
+  { key: "avgTimeMs", group: "Finish time", headerTop: "Avg", headerBottom: "Time", title: "Average finish time" },
+  { key: "medianTimeMs", group: "Finish time", headerTop: "Med", headerBottom: "Time", title: "Median finish time" },
+  { key: "p10TimeMs", group: "Finish time", headerTop: "P10", headerBottom: "Time", title: "10th percentile finish time" },
+  { key: "p25TimeMs", group: "Finish time", headerTop: "P25", headerBottom: "Time", title: "25th percentile finish time" },
+  { key: "p75TimeMs", group: "Finish time", headerTop: "P75", headerBottom: "Time", title: "75th percentile finish time" },
+  { key: "p90TimeMs", group: "Finish time", headerTop: "P90", headerBottom: "Time", title: "90th percentile finish time" },
+  { key: "worstTimeMs", group: "Finish time", headerTop: "Worst", headerBottom: "Time", title: "Worst finish time" },
 ];
 
-function renderHeader(state) {
-  return `
-    <tr>
-      ${COLUMNS.map((c) => {
-        const isActive = state.sortBy === c.key;
-        const icon = !isActive ? "" : state.sortDir === "asc" ? " ▲" : " ▼";
-        return `<th data-sort="${escapeHtml(c.key)}" title="${escapeHtml(c.title || c.label)}">${escapeHtml(c.label)}${icon}</th>`;
-      }).join("")}
-    </tr>
-  `;
+const ALL_COLUMN_KEYS = COLUMN_DEFS.map((c) => c.key);
+
+// Make the default view much cleaner (users can enable more columns from the Columns popup).
+const DEFAULT_VISIBLE_KEYS = [
+  "viewer",
+  "competitions",
+  "wins",
+  "seconds",
+  "thirds",
+  "finishedCount",
+  "dnfCount",
+  "bestFinishPos",
+  "avgFinishPos",
+  "medianFinishPos",
+  "worstFinishPos",
+  "bestTimeMs",
+  "avgTimeMs",
+  "medianTimeMs",
+  "worstTimeMs",
+];
+
+function colLabelForModal(c) {
+  if (c.key === "viewer") return "Viewer";
+  const top = c.headerTop || c.key;
+  const bottom = c.headerBottom ? ` ${c.headerBottom}` : "";
+  return `${top}${bottom}`.trim();
 }
 
-function renderRow(item) {
+function getVisibleColumns(state) {
+  const visible = new Set(state.visibleKeys || []);
+  // Always keep viewer.
+  visible.add("viewer");
+  return COLUMN_DEFS.filter((c) => c.always || visible.has(c.key));
+}
+
+function ensureSortKeyVisible(state) {
+  const visible = new Set(getVisibleColumns(state).map((c) => c.key));
+  if (!visible.has(state.sortBy)) {
+    state.sortBy = "wins";
+    state.sortDir = "desc";
+  }
+}
+
+function groupColumnsForModal(cols) {
+  const groups = new Map();
+  for (const c of cols) {
+    const g = c.group || "Other";
+    if (!groups.has(g)) groups.set(g, []);
+    groups.get(g).push(c);
+  }
+  // Keep a stable order based on appearance in COLUMN_DEFS.
+  return Array.from(groups.entries()).map(([group, columns]) => ({ group, columns }));
+}
+
+function renderHeader(state, cols) {
+  // Group row (optional): only show if 2+ groups are visible.
+  const groups = [];
+  for (const c of cols) {
+    const g = c.group || "";
+    const last = groups.length ? groups[groups.length - 1] : null;
+    if (last && last.group === g) last.colspan += 1;
+    else groups.push({ group: g, colspan: 1 });
+  }
+
+  const showGroupRow = groups.filter((g) => g.group).length >= 2;
+  const groupRow = !showGroupRow
+    ? ""
+    : `
+      <tr class="vf-thGroupRow">
+        ${groups
+          .map((g) => `<th colspan="${g.colspan}" class="vf-thGroup">${escapeHtml(g.group || "")}</th>`)
+          .join("")}
+      </tr>
+    `;
+
+  const colRow = `
+    <tr>
+      ${cols
+        .map((c) => {
+          const isActive = state.sortBy === c.key;
+          const icon = !isActive ? "" : state.sortDir === "asc" ? " ▲" : " ▼";
+          const sticky = c.key === "viewer" ? " vf-stickyCol" : "";
+
+          const top = c.headerTop || c.key;
+          const bottom = c.headerBottom || "";
+          const twoLine = bottom
+            ? `<div class="vf-thTop">${escapeHtml(top)}</div><div class="vf-thBottom">${escapeHtml(bottom)}</div>`
+            : `<div class="vf-thTop">${escapeHtml(top)}</div>`;
+
+          return `<th class="vf-th${sticky}" data-sort="${escapeHtml(c.key)}" title="${escapeHtml(c.title || top)}">${twoLine}<span class="vf-sortIcon">${escapeHtml(icon)}</span></th>`;
+        })
+        .join("")}
+    </tr>
+  `;
+
+  return `${groupRow}${colRow}`;
+}
+
+function renderRow(item, cols) {
   const login = item?.viewerLogin || "";
   const display = item?.viewerDisplayName || login || item?.viewerUserId || "Viewer";
   const twitchUrl = login ? `https://twitch.tv/${encodeURIComponent(login)}` : "";
+
+  const avatarUrl = item?.viewerProfileImageUrl || "";
+  const avatarImg = avatarUrl
+    ? `<img class="vf-avatar" src="${escapeHtml(avatarUrl)}" alt="" loading="lazy" />`
+    : `<div class="vf-avatar vf-avatarPlaceholder" aria-hidden="true">👤</div>`;
+
+  const showLogin = login && String(display).toLowerCase() !== String(login).toLowerCase();
+  const viewerInner = `
+    <div class="vf-viewerCell">
+      ${avatarImg}
+      <div class="vf-viewerText">
+        <div class="vf-viewerName">${escapeHtml(display)}</div>
+        ${showLogin ? `<div class="vf-viewerSub">@${escapeHtml(login)}</div>` : ""}
+      </div>
+    </div>
+  `;
+
   const viewerCell = twitchUrl
-    ? `<a class="vf-link" href="${twitchUrl}" target="_blank" rel="noopener">${escapeHtml(display)}</a>`
-    : escapeHtml(display);
+    ? `<a class="vf-link" href="${twitchUrl}" target="_blank" rel="noopener">${viewerInner}</a>`
+    : viewerInner;
 
   const num = (k, digits = 2) => formatNumber(item?.[k], digits);
   const time = (k) => formatTimeMs(item?.[k]);
@@ -161,11 +311,14 @@ function renderRow(item) {
 
   return `
     <tr>
-      ${COLUMNS.map((c) => {
-        const v = cells[c.key] ?? "—";
-        const cls = c.key === "viewer" ? "vf-tdViewer" : "vf-tdNum";
-        return `<td class="${cls}">${v}</td>`;
-      }).join("")}
+      ${cols
+        .map((c) => {
+          const v = cells[c.key] ?? "—";
+          const sticky = c.key === "viewer" ? " vf-stickyCol" : "";
+          const cls = c.key === "viewer" ? `vf-tdViewer${sticky}` : `vf-tdNum${sticky}`;
+          return `<td class="${cls}">${v}</td>`;
+        })
+        .join("")}
     </tr>
   `;
 }
@@ -246,6 +399,11 @@ async function init() {
   const session = await requireSession();
   if (!session) return;
 
+  // Column preferences
+  const userId = session?.me?.userId || "";
+  const savedCols = loadColumnPrefs(userId, ALL_COLUMN_KEYS);
+  const initialVisible = savedCols || DEFAULT_VISIBLE_KEYS;
+
   const state = {
     seasonId: "",
     streamerId: "ALL",
@@ -257,6 +415,8 @@ async function init() {
     sortDir: "desc",
     page: 1,
     pageSize: 25,
+    userId,
+    visibleKeys: initialVisible,
     meta: {
       seasons: [],
       streamers: [],
@@ -267,14 +427,18 @@ async function init() {
     loading: false,
   };
 
+  // Ensure we don't start sorted by a hidden column.
+  ensureSortKeyVisible(state);
+
   root.innerHTML = `
     <div class="vf-card">
       <div class="vf-row">
         <div>
           <div class="vf-h2">Leaderboard filters</div>
-          <div class="vf-muted vf-small">Default: current season, sorted by # of wins (1st place).</div>
+          <div class="vf-muted vf-small">Default: current season, sorted by # of wins (1st place). Use <span class="vf-code">Columns</span> to show/hide stats.</div>
         </div>
         <div class="vf-spacer"></div>
+        <button id="vf-colsBtn" class="vf-btn vf-btnSecondary" type="button">Columns</button>
         <button id="vf-refreshBtn" class="vf-btn vf-btnSecondary" type="button">Refresh</button>
       </div>
 
@@ -328,8 +492,8 @@ async function init() {
         <div id="vf-pagerTop"></div>
       </div>
 
-      <div class="vf-tableWrap" style="margin-top: 12px">
-        <table class="vf-table" id="vf-table">
+      <div class="vf-tableWrap vf-tableWrapTall" style="margin-top: 12px">
+        <table class="vf-table vf-tableStriped vf-tableSticky" id="vf-table">
           <thead id="vf-thead"></thead>
           <tbody id="vf-tbody"></tbody>
         </table>
@@ -339,6 +503,27 @@ async function init() {
         <div class="vf-spacer"></div>
         <div id="vf-pagerBottom"></div>
       </div>
+    </div>
+
+    <div id="vf-colsBackdrop" class="vf-modalBackdrop" hidden></div>
+    <div id="vf-colsModal" class="vf-modal" hidden role="dialog" aria-modal="true" aria-labelledby="vf-colsTitle">
+      <div class="vf-row">
+        <div>
+          <div id="vf-colsTitle" class="vf-h2">Columns</div>
+          <div class="vf-muted vf-small">Choose which columns to display. Saved per user.</div>
+        </div>
+        <div class="vf-spacer"></div>
+        <button id="vf-colsCloseX" class="vf-iconBtn" type="button" aria-label="Close" title="Close">✕</button>
+      </div>
+
+      <div class="vf-row" style="margin-top: 10px; flex-wrap: wrap; gap: 8px;">
+        <button id="vf-colsAll" class="vf-btn vf-btnSecondary vf-btnTiny" type="button">Show all</button>
+        <button id="vf-colsDefault" class="vf-btn vf-btnSecondary vf-btnTiny" type="button">Default view</button>
+        <div class="vf-spacer"></div>
+        <button id="vf-colsDone" class="vf-btn vf-btnPrimary" type="button">Done</button>
+      </div>
+
+      <div id="vf-colsBody" class="vf-colsBody" style="margin-top: 12px"></div>
     </div>
   `;
 
@@ -356,6 +541,12 @@ async function init() {
   const tableEl = document.getElementById("vf-table");
   const pagerTop = document.getElementById("vf-pagerTop");
   const pagerBottom = document.getElementById("vf-pagerBottom");
+
+  // Columns modal elements
+  const colsBtn = document.getElementById("vf-colsBtn");
+  const colsBackdrop = document.getElementById("vf-colsBackdrop");
+  const colsModal = document.getElementById("vf-colsModal");
+  const colsBody = document.getElementById("vf-colsBody");
 
   async function refreshMeta() {
     const [activeSeasonId, seasonsResp, metaResp] = await Promise.all([
@@ -425,47 +616,157 @@ async function init() {
     }
   }
 
+  function renderColumnsModal() {
+    if (!colsBody) return;
+
+    const visible = new Set(state.visibleKeys || []);
+    visible.add("viewer");
+
+    const grouped = groupColumnsForModal(COLUMN_DEFS);
+    colsBody.innerHTML = grouped
+      .map(({ group, columns }) => {
+        const rows = columns
+          .map((c) => {
+            const checked = visible.has(c.key) || c.always;
+            const disabled = !!c.always;
+            return `
+              <label class="vf-checkRow" title="${escapeHtml(c.title || "")}">
+                <input type="checkbox" data-colkey="${escapeHtml(c.key)}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""} />
+                <span class="vf-checkLabel">${escapeHtml(colLabelForModal(c))}</span>
+                <span class="vf-spacer"></span>
+                <span class="vf-muted vf-small">${escapeHtml(c.key)}</span>
+              </label>
+            `;
+          })
+          .join("");
+
+        return `
+          <div class="vf-colsGroup">
+            <div class="vf-colsGroupTitle">${escapeHtml(group)}</div>
+            <div class="vf-colsGrid">${rows}</div>
+          </div>
+        `;
+      })
+      .join("");
+
+    colsBody.querySelectorAll("input[data-colkey]")?.forEach((input) => {
+      input.addEventListener("change", () => {
+        const key = input.getAttribute("data-colkey") || "";
+        if (!key) return;
+
+        const set = new Set(state.visibleKeys || []);
+        if (input.checked) set.add(key);
+        else set.delete(key);
+
+        // Always keep viewer.
+        set.add("viewer");
+        state.visibleKeys = Array.from(set);
+        saveColumnPrefs(state.userId, state.visibleKeys);
+        ensureSortKeyVisible(state);
+
+        // Re-render without refetching.
+        if (state.lastData) {
+          renderTable(state.lastData);
+        } else {
+          loadLeaderboard();
+        }
+      });
+    });
+  }
+
+  function openColsModal() {
+    if (!colsBackdrop || !colsModal) return;
+    renderColumnsModal();
+    colsBackdrop.hidden = false;
+    colsModal.hidden = false;
+    // Focus the modal for accessibility.
+    colsModal.focus?.();
+  }
+
+  function closeColsModal() {
+    if (!colsBackdrop || !colsModal) return;
+    colsBackdrop.hidden = true;
+    colsModal.hidden = true;
+  }
+
+  colsBtn?.addEventListener("click", openColsModal);
+  colsBackdrop?.addEventListener("click", closeColsModal);
+  document.getElementById("vf-colsDone")?.addEventListener("click", closeColsModal);
+  document.getElementById("vf-colsCloseX")?.addEventListener("click", closeColsModal);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && colsModal && !colsModal.hidden) closeColsModal();
+  });
+
+  document.getElementById("vf-colsAll")?.addEventListener("click", () => {
+    state.visibleKeys = [...ALL_COLUMN_KEYS];
+    saveColumnPrefs(state.userId, state.visibleKeys);
+    ensureSortKeyVisible(state);
+    renderColumnsModal();
+    if (state.lastData) renderTable(state.lastData);
+  });
+
+  document.getElementById("vf-colsDefault")?.addEventListener("click", () => {
+    state.visibleKeys = [...DEFAULT_VISIBLE_KEYS];
+    saveColumnPrefs(state.userId, state.visibleKeys);
+    ensureSortKeyVisible(state);
+    renderColumnsModal();
+    if (state.lastData) renderTable(state.lastData);
+  });
+
+  function sortLabel() {
+    const col = COLUMN_DEFS.find((c) => c.key === state.sortBy);
+    return col ? colLabelForModal(col) : state.sortBy;
+  }
+
+  function renderTable(resp) {
+    const cols = getVisibleColumns(state);
+    const items = Array.isArray(resp?.items) ? resp.items : [];
+
+    if (theadEl) theadEl.innerHTML = renderHeader(state, cols);
+    if (tbodyEl) {
+      tbodyEl.innerHTML = items.length
+        ? items.map((it) => renderRow(it, cols)).join("")
+        : `<tr><td colspan="${cols.length}" class="vf-muted" style="padding: 14px">No results found.</td></tr>`;
+    }
+
+    wireSortHandlers(state, tableEl, () => debounceLoad(loadLeaderboard, 10));
+
+    const total = resp?.totalItems || 0;
+    const page = resp?.page || 1;
+    const pages = resp?.totalPages || 1;
+    if (summaryEl) {
+      summaryEl.textContent = `Showing ${items.length} of ${total} viewers • Page ${page}/${pages} • Sorted by ${sortLabel()} (${state.sortDir})`;
+    }
+
+    renderPager(state, resp, pagerTop, (p) => {
+      state.page = p;
+      loadLeaderboard();
+    });
+
+    renderPager(state, resp, pagerBottom, (p) => {
+      state.page = p;
+      loadLeaderboard();
+    });
+  }
+
   async function loadLeaderboard() {
     if (state.loading) return;
     state.loading = true;
     if (summaryEl) summaryEl.textContent = "Loading…";
 
     try {
+      ensureSortKeyVisible(state);
       const q = buildQuery(state);
       const resp = await api.getLeaderboard(q);
       state.lastData = resp;
 
-      const total = resp?.totalItems || 0;
-      const page = resp?.page || 1;
-      const pages = resp?.totalPages || 1;
-      if (summaryEl) {
-        summaryEl.textContent = `Showing ${resp?.items?.length || 0} of ${total} viewers • Page ${page}/${pages}`;
-      }
-
-      if (theadEl) theadEl.innerHTML = renderHeader(state);
-      if (tbodyEl) {
-        const items = Array.isArray(resp?.items) ? resp.items : [];
-        tbodyEl.innerHTML = items.length
-          ? items.map(renderRow).join("")
-          : `<tr><td colspan="${COLUMNS.length}" class="vf-muted" style="padding: 14px">No results found.</td></tr>`;
-      }
-
-      wireSortHandlers(state, tableEl, () => debounceLoad(loadLeaderboard, 10));
-
-      renderPager(state, resp, pagerTop, (p) => {
-        state.page = p;
-        loadLeaderboard();
-      });
-
-      renderPager(state, resp, pagerBottom, (p) => {
-        state.page = p;
-        loadLeaderboard();
-      });
+      renderTable(resp);
     } catch (e) {
       console.error(e);
       if (summaryEl) summaryEl.textContent = "Failed to load leaderboard.";
       if (tbodyEl) {
-        tbodyEl.innerHTML = `<tr><td colspan="${COLUMNS.length}" class="vf-alert vf-alertError">${escapeHtml(e?.message || "Error")}</td></tr>`;
+        const cols = getVisibleColumns(state);
+        tbodyEl.innerHTML = `<tr><td colspan="${cols.length}" class="vf-alert vf-alertError">${escapeHtml(e?.message || "Error")}</td></tr>`;
       }
       toast("Failed to load stats");
     } finally {
