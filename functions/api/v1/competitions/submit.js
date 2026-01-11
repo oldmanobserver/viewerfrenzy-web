@@ -1,0 +1,393 @@
+// functions/api/v1/competitions/submit.js
+// Streamer-only endpoint: Unity posts a finished competition + per-viewer results.
+//
+// Storage:
+// - Competitions + results are persisted to D1 (env.VF_D1_STATS).
+// - Seasons are resolved from KV (env.VF_KV_SEASONS) and stored alongside the competition.
+
+import { handleOptions } from "../../../_lib/cors.js";
+import { jsonResponse } from "../../../_lib/response.js";
+import { requireWebsiteUser } from "../../../_lib/twitchAuth.js";
+import { listAllJsonRecords } from "../../../_lib/kv.js";
+
+function nowMs() {
+  return Date.now();
+}
+
+function toStr(v) {
+  return String(v ?? "").trim();
+}
+
+function toLower(v) {
+  return toStr(v).toLowerCase();
+}
+
+function toInt(v, { min = undefined, max = undefined, fallback = 0 } = {}) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return fallback;
+  let x = Math.trunc(n);
+  if (min !== undefined && x < min) x = min;
+  if (max !== undefined && x > max) x = max;
+  return x;
+}
+
+function toFloat(v, { min = undefined, max = undefined, fallback = 0 } = {}) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return fallback;
+  let x = n;
+  if (min !== undefined && x < min) x = min;
+  if (max !== undefined && x > max) x = max;
+  return x;
+}
+
+function isNonEmpty(s) {
+  return !!toStr(s);
+}
+
+function parseIsoMs(iso) {
+  const t = Date.parse(String(iso || ""));
+  return Number.isFinite(t) ? t : NaN;
+}
+
+function normalizeIso(iso) {
+  const t = parseIsoMs(iso);
+  if (!Number.isFinite(t)) return "";
+  return new Date(t).toISOString();
+}
+
+let _seasonCache = {
+  fetchedAtMs: 0,
+  seasons: [],
+};
+
+async function loadSeasonsCached(env) {
+  const ttlMs = 60_000;
+  const now = nowMs();
+
+  if (_seasonCache.seasons.length > 0 && now - _seasonCache.fetchedAtMs < ttlMs) {
+    return _seasonCache.seasons;
+  }
+
+  if (!env?.VF_KV_SEASONS) {
+    _seasonCache = { fetchedAtMs: now, seasons: [] };
+    return [];
+  }
+
+  const raw = await listAllJsonRecords(env.VF_KV_SEASONS).catch(() => []);
+
+  // raw entries are the season objects (viewerfrenzy-web kv helper returns values only)
+  const seasons = (Array.isArray(raw) ? raw : [])
+    .filter(Boolean)
+    .map((s) => ({
+      seasonId: toStr(s?.seasonId).toLowerCase(),
+      startAt: normalizeIso(s?.startAt),
+      endAt: normalizeIso(s?.endAt),
+      name: toStr(s?.name),
+    }))
+    .filter((s) => s.seasonId && s.startAt && s.endAt);
+
+  _seasonCache = { fetchedAtMs: now, seasons };
+  return seasons;
+}
+
+function resolveSeasonId(seasons, startedAtMs) {
+  if (!Number.isFinite(startedAtMs) || startedAtMs <= 0) return null;
+
+  for (const s of Array.isArray(seasons) ? seasons : []) {
+    const startMs = Date.parse(s.startAt);
+    const endMs = Date.parse(s.endAt);
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) continue;
+
+    // inclusive range
+    if (startedAtMs >= startMs && startedAtMs <= endMs) {
+      return s.seasonId;
+    }
+  }
+
+  return null;
+}
+
+function clampResults(results, max = 400) {
+  const arr = Array.isArray(results) ? results : [];
+  if (arr.length <= max) return arr;
+  return arr.slice(0, max);
+}
+
+function chunkArray(arr, size) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+export async function onRequest(context) {
+  const { request, env } = context;
+
+  if (request.method === "OPTIONS") return handleOptions(request);
+
+  if (request.method !== "POST") {
+    return jsonResponse(request, { error: "method_not_allowed" }, 405);
+  }
+
+  const auth = await requireWebsiteUser(context);
+  if (!auth.ok) return auth.response;
+
+  // Streamer-only: the broadcaster account is allowed.
+  // (This prevents viewers/subscribers from spamming competition submissions.)
+  if (!auth?.access?.allowed || auth?.access?.reason !== "broadcaster") {
+    return jsonResponse(
+      request,
+      { error: "forbidden", message: "Only the broadcaster can submit competition results." },
+      403,
+    );
+  }
+
+  if (!env?.VF_D1_STATS) {
+    return jsonResponse(
+      request,
+      { error: "d1_not_bound", message: "Missing D1 binding: VF_D1_STATS" },
+      500,
+    );
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    body = null;
+  }
+
+  const competition = body?.competition || null;
+  const resultsRaw = clampResults(body?.results, 600);
+
+  const competitionUuid = toStr(competition?.competitionUuid);
+  if (!competitionUuid) {
+    return jsonResponse(request, { error: "competition_uuid_required" }, 400);
+  }
+
+  const startedAtMs = Number(competition?.startedAtMs);
+  const endedAtMs = Number(competition?.endedAtMs);
+  if (!Number.isFinite(startedAtMs) || startedAtMs <= 0) {
+    return jsonResponse(request, { error: "started_at_required" }, 400);
+  }
+  if (!Number.isFinite(endedAtMs) || endedAtMs <= 0 || endedAtMs < startedAtMs) {
+    return jsonResponse(request, { error: "ended_at_invalid" }, 400);
+  }
+
+  const vehicleType = toStr(competition?.vehicleType) || "";
+  const gameMode = toStr(competition?.gameMode) || "";
+
+  const trackId = toStr(competition?.trackId);
+  const trackName = toStr(competition?.trackName);
+  const trackVersion = toInt(competition?.trackVersion, { min: 0, max: 9999, fallback: 0 });
+  const trackHashSha256 = toStr(competition?.trackHashSha256);
+
+  const raceSeed = toInt(competition?.raceSeed, { min: 0, max: 2_000_000_000, fallback: 0 });
+  const trackLengthM = toFloat(competition?.trackLengthM, { min: 0, max: 1_000_000, fallback: 0 });
+
+  const clientVersion = toStr(competition?.clientVersion);
+  const unityVersion = toStr(competition?.unityVersion);
+
+  // Winner (best-effort): first FINISHED with position 1.
+  let winnerUserId = null;
+  for (const r of resultsRaw) {
+    if (!r) continue;
+    const status = toStr(r.status).toUpperCase();
+    const pos = toInt(r.position, { min: 1, max: 10_000, fallback: 0 });
+    if (status === "FINISHED" && pos === 1) {
+      const uid = toStr(r.userId) || toStr(r.login);
+      if (uid) {
+        winnerUserId = uid;
+        break;
+      }
+    }
+  }
+
+  const seasons = await loadSeasonsCached(env);
+  const seasonId = resolveSeasonId(seasons, startedAtMs);
+
+  const streamerUserId = toStr(auth?.user?.userId);
+  const streamerLogin = toStr(auth?.user?.login);
+
+  if (!streamerUserId) {
+    return jsonResponse(request, { error: "auth_missing_user_id" }, 401);
+  }
+
+  const createdAtMs = nowMs();
+  const updatedAtMs = createdAtMs;
+
+  // 1) Upsert competition
+  const upsertCompetitionSql = `
+    INSERT INTO competitions (
+      competition_uuid,
+      streamer_user_id,
+      streamer_login,
+      season_id,
+      map_id,
+      map_name,
+      map_version,
+      map_hash_sha256,
+      vehicle_type,
+      game_mode,
+      race_seed,
+      track_length_m,
+      started_at_ms,
+      ended_at_ms,
+      winner_user_id,
+      client_version,
+      unity_version,
+      created_at_ms,
+      updated_at_ms
+    ) VALUES (
+      ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
+    )
+    ON CONFLICT(competition_uuid) DO UPDATE SET
+      streamer_user_id=excluded.streamer_user_id,
+      streamer_login=excluded.streamer_login,
+      season_id=excluded.season_id,
+      map_id=excluded.map_id,
+      map_name=excluded.map_name,
+      map_version=excluded.map_version,
+      map_hash_sha256=excluded.map_hash_sha256,
+      vehicle_type=excluded.vehicle_type,
+      game_mode=excluded.game_mode,
+      race_seed=excluded.race_seed,
+      track_length_m=excluded.track_length_m,
+      started_at_ms=excluded.started_at_ms,
+      ended_at_ms=excluded.ended_at_ms,
+      winner_user_id=excluded.winner_user_id,
+      client_version=excluded.client_version,
+      unity_version=excluded.unity_version,
+      updated_at_ms=excluded.updated_at_ms
+  `;
+
+  await env.VF_D1_STATS
+    .prepare(upsertCompetitionSql)
+    .bind(
+      competitionUuid,
+      streamerUserId,
+      streamerLogin,
+      seasonId,
+      trackId,
+      trackName,
+      trackVersion,
+      trackHashSha256,
+      vehicleType,
+      gameMode,
+      raceSeed,
+      trackLengthM,
+      Math.trunc(startedAtMs),
+      Math.trunc(endedAtMs),
+      winnerUserId,
+      clientVersion,
+      unityVersion,
+      createdAtMs,
+      updatedAtMs,
+    )
+    .run();
+
+  const compRow = await env.VF_D1_STATS
+    .prepare("SELECT id FROM competitions WHERE competition_uuid = ?")
+    .bind(competitionUuid)
+    .first();
+
+  const competitionId = compRow?.id;
+  if (!competitionId) {
+    return jsonResponse(
+      request,
+      { error: "db_error", message: "Failed to read competition id after upsert." },
+      500,
+    );
+  }
+
+  // 2) Upsert results
+  const upsertResultSql = `
+    INSERT INTO competition_results (
+      competition_id,
+      viewer_user_id,
+      viewer_login,
+      viewer_display_name,
+      viewer_profile_image_url,
+      finish_position,
+      status,
+      finish_time_ms,
+      vehicle_id,
+      distance_m,
+      progress01,
+      created_at_ms,
+      updated_at_ms
+    ) VALUES (
+      ?,?,?,?,?,?,?,?,?,?,?,?,?
+    )
+    ON CONFLICT(competition_id, viewer_user_id) DO UPDATE SET
+      viewer_login=excluded.viewer_login,
+      viewer_display_name=excluded.viewer_display_name,
+      viewer_profile_image_url=excluded.viewer_profile_image_url,
+      finish_position=excluded.finish_position,
+      status=excluded.status,
+      finish_time_ms=excluded.finish_time_ms,
+      vehicle_id=excluded.vehicle_id,
+      distance_m=excluded.distance_m,
+      progress01=excluded.progress01,
+      updated_at_ms=excluded.updated_at_ms
+  `;
+
+  const statements = [];
+
+  for (const r of resultsRaw) {
+    if (!r) continue;
+
+    const viewerUserId = toStr(r?.userId) || toStr(r?.login);
+    if (!viewerUserId) continue;
+
+    const viewerLogin = toLower(r?.login);
+    const displayName = toStr(r?.displayName);
+    const profileImageUrl = toStr(r?.profileImageUrl);
+
+    const finishPosition = toInt(r?.position, { min: 1, max: 10_000, fallback: 9999 });
+
+    const statusRaw = toStr(r?.status).toUpperCase();
+    const status = statusRaw === "FINISHED" ? "FINISHED" : "DNF";
+
+    const timeMsRaw = Number(r?.timeMs);
+    const finishTimeMs = status === "FINISHED" && Number.isFinite(timeMsRaw) && timeMsRaw > 0 ? Math.trunc(timeMsRaw) : null;
+
+    const vehicleId = toStr(r?.vehicleId);
+
+    const distanceM = toFloat(r?.distanceM, { min: 0, max: 1_000_000, fallback: 0 });
+    const progress01 = toFloat(r?.progress01, { min: 0, max: 1, fallback: 0 });
+
+    statements.push(
+      env.VF_D1_STATS.prepare(upsertResultSql).bind(
+        competitionId,
+        viewerUserId,
+        viewerLogin,
+        displayName,
+        profileImageUrl,
+        finishPosition,
+        status,
+        finishTimeMs,
+        vehicleId,
+        distanceM,
+        progress01,
+        createdAtMs,
+        updatedAtMs,
+      ),
+    );
+  }
+
+  // Avoid massive single-batch requests.
+  const BATCH_SIZE = 100;
+  for (const chunk of chunkArray(statements, BATCH_SIZE)) {
+    // D1 returns an array of results; ignore it for MVP.
+    await env.VF_D1_STATS.batch(chunk);
+  }
+
+  return jsonResponse(request, {
+    ok: true,
+    competitionUuid,
+    seasonId,
+    competitionId,
+    resultsReceived: resultsRaw.length,
+    resultsWritten: statements.length,
+  });
+}
