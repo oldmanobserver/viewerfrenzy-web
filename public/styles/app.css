@@ -368,6 +368,25 @@ a { color: inherit; }
   color: var(--text);
 }
 
+/*
+  Dropdown readability (Windows/Chrome):
+  Some browsers render the <select> dropdown list with a light (white) background
+  but inherit the <select> text color for <option>. Since our theme uses a light
+  text color, that can result in white text on white background inside the
+  expanded dropdown menu. We keep the closed <select> dark-themed, but force
+  dropdown options to use a dark text color so they're always readable.
+*/
+select.vf-input option,
+select.vf-input optgroup {
+  /* Fallback */
+  color: #111;
+  background: #fff;
+
+  /* Prefer system colors when supported (matches OS light/dark UI). */
+  color: CanvasText;
+  background: Canvas;
+}
+
 .vf-input:focus { outline: none; box-shadow: var(--focus); }
 
 .vf-chipRow {
