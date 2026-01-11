@@ -114,6 +114,7 @@ function buildQuery(state) {
     seasonId: state.seasonId || "ALL",
     streamerId: state.streamerId || "ALL",
     mapId: state.mapId || "ALL",
+    vehicleType: state.vehicleType || "ALL",
     streamerSearch: state.streamerSearch || "",
     viewerSearch: state.viewerSearch || "",
     mapSearch: state.mapSearch || "",
@@ -408,6 +409,7 @@ async function init() {
     seasonId: "",
     streamerId: "ALL",
     mapId: "ALL",
+    vehicleType: "ALL",
     streamerSearch: "",
     viewerSearch: "",
     mapSearch: "",
@@ -456,6 +458,16 @@ async function init() {
         <label class="vf-field">
           <span class="vf-fieldLabel">Map</span>
           <select id="vf-map" class="vf-input" style="max-width: 320px"></select>
+        </label>
+
+        <label class="vf-field">
+          <span class="vf-fieldLabel">Mode</span>
+          <select id="vf-vehicleType" class="vf-input vf-inputSmall">
+            <option value="ALL" selected>All</option>
+            <option value="ground">Ground</option>
+            <option value="resort">Resort</option>
+            <option value="space">Space</option>
+          </select>
         </label>
 
         <label class="vf-field">
@@ -530,6 +542,7 @@ async function init() {
   const seasonSel = document.getElementById("vf-season");
   const streamerSel = document.getElementById("vf-streamer");
   const mapSel = document.getElementById("vf-map");
+  const vehicleTypeSel = document.getElementById("vf-vehicleType");
   const viewerSearchEl = document.getElementById("vf-viewerSearch");
   const streamerSearchEl = document.getElementById("vf-streamerSearch");
   const mapSearchEl = document.getElementById("vf-mapSearch");
@@ -613,6 +626,11 @@ async function init() {
         }),
       ].join("");
       mapSel.value = state.mapId;
+    }
+
+    // Mode dropdown (static options)
+    if (vehicleTypeSel) {
+      vehicleTypeSel.value = state.vehicleType || "ALL";
     }
   }
 
@@ -798,6 +816,11 @@ async function init() {
 
   mapSel?.addEventListener("change", () => {
     state.mapId = mapSel.value || "ALL";
+    scheduleReload(true);
+  });
+
+  vehicleTypeSel?.addEventListener("change", () => {
+    state.vehicleType = vehicleTypeSel.value || "ALL";
     scheduleReload(true);
   });
 

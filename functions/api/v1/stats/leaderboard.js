@@ -53,6 +53,7 @@ function buildWhereAndParams(url) {
   const seasonId = normStr(url.searchParams.get("seasonId"));
   const streamerId = normStr(url.searchParams.get("streamerId"));
   const mapId = normStr(url.searchParams.get("mapId"));
+  const vehicleType = normStr(url.searchParams.get("vehicleType"));
 
   if (seasonId && seasonId.toUpperCase() !== "ALL") {
     where.push("c.season_id = ?");
@@ -67,6 +68,12 @@ function buildWhereAndParams(url) {
   if (mapId && mapId.toUpperCase() !== "ALL") {
     where.push("c.map_id = ?");
     params.push(mapId);
+  }
+
+  // Vehicle type / mode (ground | resort | space)
+  if (vehicleType && vehicleType.toUpperCase() !== "ALL") {
+    where.push("LOWER(TRIM(COALESCE(c.vehicle_type,''))) = ?");
+    params.push(vehicleType.toLowerCase());
   }
 
   const streamerSearch = normSearch(url.searchParams.get("streamerSearch"));
