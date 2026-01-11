@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark light" />
 
-    <title>ViewerFrenzy – Logout</title>
-    <meta name="description" content="ViewerFrenzy – Stream-enabled racing chaos." />
+    <title>ViewerFrenzy – Stats & Leaderboards</title>
+    <meta name="description" content="ViewerFrenzy stats and leaderboards." />
 
     <link rel="stylesheet" href="/styles/app.css" />
 
     <script src="/config.js" defer></script>
     <script type="module" src="/js/page-common.js" defer></script>
-    <script type="module" src="/js/logout-page.js" defer></script>
+    <script type="module" src="/js/stats-page.js" defer></script>
   </head>
 
-  <body data-page="logout">
+  <body data-page="stats">
     <header class="vf-topbar">
       <button id="vf-menuBtn" class="vf-iconBtn" aria-label="Open menu" title="Menu" type="button">
         <span aria-hidden="true">☰</span>
@@ -85,11 +85,8 @@
 
     <main id="vf-main" class="vf-main" tabindex="-1">
       <div class="vf-container">
-        <h1 class="vf-h1">Logout</h1>
-
-        <div class="vf-card" style="margin-top: 12px">
-          <div class="vf-muted">Logging you out…</div>
-        </div>
+        <h1 class="vf-h1">Stats & Leaderboards</h1>
+        <div id="vf-statsRoot" style="margin-top: 12px"></div>
       </div>
 
     </main>

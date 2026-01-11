@@ -84,3 +84,27 @@ export async function putVehicleDefault(type, vehicleId, auth) {
 export async function getVehiclePools() {
   return apiFetch("/api/v1/vehicle-pools", { method: "GET" });
 }
+
+// Public: Seasons list
+export async function getSeasons() {
+  return apiFetch("/api/v1/seasons", { method: "GET" });
+}
+
+// Public: Stats meta (distinct streamers + maps)
+export async function getStatsMeta() {
+  return apiFetch("/api/v1/stats/meta", { method: "GET" });
+}
+
+// Public: Leaderboard / stats
+// query example:
+//   { seasonId, streamerId, mapId, streamerSearch, viewerSearch, mapSearch, sortBy, sortDir, page, pageSize }
+export async function getLeaderboard(query = {}) {
+  const u = new URL("/api/v1/stats/leaderboard", window.location.origin);
+  for (const [k, v] of Object.entries(query || {})) {
+    if (v === undefined || v === null) continue;
+    const s = String(v).trim();
+    if (!s) continue;
+    u.searchParams.set(k, s);
+  }
+  return apiFetch(u.pathname + (u.search ? u.search : ""), { method: "GET" });
+}

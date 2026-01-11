@@ -681,3 +681,57 @@ a { color: inherit; }
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ---------- STATS TABLE ---------- */
+
+.vf-tableWrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.18);
+}
+
+.vf-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1180px; /* allow horizontal scroll for many columns */
+}
+
+.vf-table th,
+.vf-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.vf-table thead th {
+  text-align: left;
+  font-weight: 900;
+  color: rgba(255,255,255,0.92);
+  background: rgba(255,255,255,0.04);
+  cursor: pointer;
+  user-select: none;
+}
+
+.vf-table tbody tr:hover td {
+  background: rgba(255,255,255,0.03);
+}
+
+.vf-tdViewer {
+  font-weight: 800;
+}
+
+.vf-tdNum {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.vf-table thead th:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.vf-table tbody tr:last-child td {
+  border-bottom: 0;
+}
