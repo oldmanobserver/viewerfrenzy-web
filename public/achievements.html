@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark light" />
 
-    <title>ViewerFrenzy – Main Menu</title>
-    <meta name="description" content="ViewerFrenzy – Stream-enabled racing chaos." />
+    <title>ViewerFrenzy – Achievements</title>
+    <meta name="description" content="ViewerFrenzy achievements and progress." />
 
     <link rel="stylesheet" href="/styles/app.css" />
 
     <script src="/config.js" defer></script>
     <script type="module" src="/js/page-common.js" defer></script>
-    <script type="module" src="/js/mainmenu-page.js" defer></script>
+    <script type="module" src="/js/achievements-page.js" defer></script>
   </head>
 
-  <body data-page="home">
+  <body data-page="achievements">
     <header class="vf-topbar">
       <button id="vf-menuBtn" class="vf-iconBtn" aria-label="Open menu" title="Menu" type="button">
         <span aria-hidden="true">☰</span>
@@ -66,7 +66,6 @@
           <span>Achievements</span>
         </a>
 
-
         <a class="vf-navItem" href="/charactercreator.html" data-route="character">
           <span class="vf-navIcon" aria-hidden="true">🧑‍🎨</span>
           <span>Character Creator</span>
@@ -91,40 +90,8 @@
 
     <main id="vf-main" class="vf-main" tabindex="-1">
       <div class="vf-container">
-        <h1 class="vf-h1">Main Menu</h1>
-
-        <div class="vf-card" style="margin-top: 12px">
-          <div class="vf-muted" style="margin-bottom: 10px">
-            Choose where you want to go.
-          </div>
-
-          <div class="vf-menuLinks">
-            <a class="vf-menuLinkCard" href="/garage.html">
-              <div class="vf-cardTitle">Garage</div>
-              <div class="vf-cardSub">Set your default vehicle per mode.</div>
-            </a>
-
-            <a class="vf-menuLinkCard" href="/stats.html">
-              <div class="vf-cardTitle">Stats & Leaderboards</div>
-              <div class="vf-cardSub">See wins, placements, and best times.</div>
-            </a>
-
-            <a class="vf-menuLinkCard" href="/achievements.html">
-              <div class="vf-cardTitle">Achievements</div>
-              <div class="vf-cardSub">Track your milestones and unlock rewards.</div>
-            </a>
-
-            <a class="vf-menuLinkCard" href="/charactercreator.html">
-              <div class="vf-cardTitle">Character Creator</div>
-              <div class="vf-cardSub">Coming soon.</div>
-            </a>
-
-            <a class="vf-menuLinkCard" href="/logout.html">
-              <div class="vf-cardTitle">Logout</div>
-              <div class="vf-cardSub">Sign out of ViewerFrenzy web.</div>
-            </a>
-          </div>
-        </div>
+        <h1 class="vf-h1">Achievements</h1>
+        <div id="vf-achRoot" style="margin-top: 12px"></div>
       </div>
 
     </main>

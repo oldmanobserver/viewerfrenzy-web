@@ -413,3 +413,262 @@ export async function awardAchievementsForViewers(env, viewerUserIds, {
 
   return unlocked;
 }
+
+// ------------------------------
+// Progress (for website UI)
+// ------------------------------
+
+function clamp01(x) {
+  const n = Number(x);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(1, n));
+}
+
+function clauseProgress01(currentRaw, opRaw, targetRaw) {
+  const current = Number(currentRaw) || 0;
+  const op = toStr(opRaw);
+  const target = Number(targetRaw) || 0;
+
+  // If the clause is already satisfied, progress is complete.
+  if (compareOp(current, op, target)) return 1;
+
+  // Otherwise estimate "how close" we are.
+  // This is intentionally simple and tuned for count-like metrics.
+  switch (op) {
+    case ">=": {
+      if (target === 0) return current > 0 ? 1 : 0;
+      return clamp01(current / target);
+    }
+    case ">": {
+      // For integer counters, "> N" becomes "N+1" as the practical target.
+      const denom = target + 1;
+      if (denom <= 0) return current > target ? 1 : 0;
+      return clamp01(current / denom);
+    }
+    case "<=": {
+      // If you exceeded a limit (e.g. dnf<=0), progress is basically 0.
+      if (target <= 0) return 0;
+      if (current <= 0) return 0;
+      return clamp01(target / current);
+    }
+    case "<": {
+      // Similar to <=, but treat as "target-1" for integer counters.
+      const practical = target - 1;
+      if (practical <= 0) return 0;
+      if (current <= 0) return 0;
+      return clamp01(practical / current);
+    }
+    case "==": {
+      if (target === 0) return current === 0 ? 1 : 0;
+      if (current < target) return clamp01(current / target);
+      if (current > target) return clamp01(target / current);
+      return 1;
+    }
+    case "!=": {
+      return current !== target ? 1 : 0;
+    }
+    default:
+      return 0;
+  }
+}
+
+function metricLabel(normalizedMetric) {
+  const m = toStr(normalizedMetric);
+  if (!m) return "";
+
+  if (m.startsWith("action:")) {
+    const key = m.slice("action:".length);
+
+    // Friendly known keys
+    if (key === "default_vehicle_set") return "Default vehicle sets";
+    if (key === "default_vehicle_set_ground") return "Default ground vehicle set";
+    if (key === "default_vehicle_set_resort") return "Default resort vehicle set";
+    if (key === "default_vehicle_set_space") return "Default space vehicle set";
+
+    // Fallback: action key -> Title-ish case
+    return key
+      .split(/[_\-]/g)
+      .filter(Boolean)
+      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+      .join(" ");
+  }
+
+  switch (m) {
+    case "wins":
+      return "Wins";
+    case "races":
+      return "Races";
+    case "finished":
+      return "Finished";
+    case "dnf":
+      return "DNF";
+    default:
+      return m;
+  }
+}
+
+async function loadUnlockMap(env, viewerUserId) {
+  const uid = toStr(viewerUserId);
+  if (!uid) return new Map();
+
+  const res = await env.VF_D1_STATS.prepare(
+    `SELECT achievement_id AS achievementId, unlocked_at_ms AS unlockedAtMs
+     FROM viewer_achievements
+     WHERE viewer_user_id = ?`,
+  )
+    .bind(uid)
+    .all();
+
+  const map = new Map();
+  for (const r of Array.isArray(res?.results) ? res.results : []) {
+    const aid = Number(r?.achievementId || 0) || 0;
+    const ts = Number(r?.unlockedAtMs || 0) || 0;
+    if (aid > 0 && ts > 0) map.set(aid, ts);
+  }
+  return map;
+}
+
+/**
+ * Returns all active achievements + completion + progress for a single viewer.
+ *
+ * Response format is tailored for the website Achievements page.
+ */
+export async function getAchievementProgressForViewer(env, viewerUserId) {
+  if (!env?.VF_D1_STATS) {
+    return { ok: false, error: "d1_not_bound", achievements: [] };
+  }
+
+  const uid = toStr(viewerUserId);
+  if (!uid) {
+    return { ok: false, error: "missing_viewer_user_id", achievements: [] };
+  }
+
+  let achievements;
+  try {
+    achievements = await listActiveAchievements(env);
+  } catch (e) {
+    return {
+      ok: false,
+      error: "db_not_initialized",
+      message: "Stats DB not initialized (achievements tables missing).",
+      details: String(e?.message || e),
+      achievements: [],
+    };
+  }
+
+  // Parse + compile criteria; collect action keys so we only query what we need.
+  const compiled = [];
+  const actionKeys = new Set();
+
+  for (const a of Array.isArray(achievements) ? achievements : []) {
+    const parsed = parseAchievementCriteria(a?.criteria);
+    if (!parsed.ok) continue;
+
+    const clauses = parsed.clauses.map((c) => {
+      const metric = normalizeMetricName(c?.metric);
+      if (metric.startsWith("action:")) {
+        const key = metric.slice("action:".length);
+        if (key) actionKeys.add(key);
+      }
+      return {
+        metricRaw: toStr(c?.metric),
+        metric,
+        op: toStr(c?.op),
+        target: Number(c?.value || 0) || 0,
+      };
+    });
+
+    compiled.push({
+      id: Number(a?.id || 0) || 0,
+      name: toStr(a?.name),
+      description: toStr(a?.description),
+      criteria: toStr(a?.criteria),
+      clauses,
+    });
+  }
+
+  // Viewer metrics
+  const statsMap = await loadViewerStats(env, [uid]);
+  const actMap = await loadViewerActions(env, [uid], Array.from(actionKeys));
+
+  const metrics = statsMap.get(uid) || { races: 0, finished: 0, wins: 0, dnf: 0, actions: {} };
+  metrics.actions = actMap.get(uid) || {};
+
+  // Unlock timestamps (if any)
+  const unlockMap = await loadUnlockMap(env, uid);
+
+  const out = [];
+
+  for (const a of compiled) {
+    if (!a?.id) continue;
+
+    const unlockedAtMs = unlockMap.get(a.id) || 0;
+
+    const eligibleNow = evaluateAchievementCriteria(
+      a.clauses.map((x) => ({ metric: x.metricRaw, op: x.op, value: x.target })),
+      metrics,
+    );
+
+    const reqs = [];
+    let hasAnyProgress = false;
+    let sumProgress = 0;
+    let satisfiedCount = 0;
+
+    for (const c of a.clauses) {
+      let current = 0;
+      if (c.metric.startsWith("action:")) {
+        const key = c.metric.slice("action:".length);
+        current = Number(metrics?.actions?.[key] || 0) || 0;
+      } else {
+        current = Number(metrics?.[c.metric] || 0) || 0;
+      }
+
+      const satisfied = compareOp(current, c.op, c.target);
+      const p01 = clauseProgress01(current, c.op, c.target);
+
+      if (p01 > 0) hasAnyProgress = true;
+      sumProgress += p01;
+      if (satisfied) satisfiedCount += 1;
+
+      reqs.push({
+        metric: c.metric,
+        metricLabel: metricLabel(c.metric),
+        op: c.op,
+        target: c.target,
+        current,
+        satisfied,
+        progress01: p01,
+      });
+    }
+
+    const avgProgress = reqs.length ? sumProgress / reqs.length : 0;
+    const overallProgress01 = unlockedAtMs > 0 ? 1 : eligibleNow ? 1 : clamp01(avgProgress);
+
+    out.push({
+      id: a.id,
+      name: a.name,
+      description: a.description,
+      criteria: a.criteria,
+      unlockedAtMs,
+      eligibleNow,
+      overallProgress01,
+      hasAnyProgress,
+      requirementsSatisfied: satisfiedCount,
+      requirementsTotal: reqs.length,
+      requirements: reqs,
+    });
+  }
+
+  return {
+    ok: true,
+    viewerUserId: uid,
+    metrics: {
+      races: Number(metrics?.races || 0) || 0,
+      finished: Number(metrics?.finished || 0) || 0,
+      wins: Number(metrics?.wins || 0) || 0,
+      dnf: Number(metrics?.dnf || 0) || 0,
+      actions: metrics?.actions || {},
+    },
+    achievements: out,
+  };
+}

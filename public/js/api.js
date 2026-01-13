@@ -115,3 +115,8 @@ export async function getLeaderboard(query = {}) {
   }
   return apiFetch(u.pathname + (u.search ? u.search : ""), { method: "GET" });
 }
+
+// Authenticated: Achievements + progress for current user
+export async function getMyAchievementProgress(auth) {
+  return apiFetch("/api/v1/me/achievement-progress", { method: "GET", auth });
+}

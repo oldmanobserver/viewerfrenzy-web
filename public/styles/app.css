@@ -967,3 +967,165 @@ select.vf-input optgroup {
 .vf-table tbody tr:last-child td {
   border-bottom: 0;
 }
+
+/* ---------- ACHIEVEMENTS PAGE ---------- */
+
+.vf-achList {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+@media (min-width: 860px) {
+  .vf-achList {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.vf-achCard {
+  padding: 14px;
+}
+
+.vf-achCard.is-unlocked {
+  border-color: rgba(255, 215, 90, 0.42);
+  background: rgba(255, 215, 90, 0.06);
+}
+
+.vf-achCard.is-eligible {
+  border-color: rgba(123, 97, 255, 0.42);
+  background: rgba(123, 97, 255, 0.08);
+}
+
+.vf-achHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vf-achTitle {
+  font-weight: 900;
+  font-size: 16px;
+  line-height: 1.2;
+  flex: 1;
+}
+
+.vf-achBadge {
+  font-size: 11px;
+  font-weight: 900;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+}
+
+.vf-achBadgeDone {
+  border-color: rgba(255, 215, 90, 0.55);
+  background: rgba(255, 215, 90, 0.12);
+}
+
+.vf-achBadgeEligible {
+  border-color: rgba(123, 97, 255, 0.55);
+  background: rgba(123, 97, 255, 0.18);
+}
+
+.vf-achDesc {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.vf-achOverall {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.10);
+}
+
+.vf-achOverallTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vf-achOverallLabel {
+  font-size: 12px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.88);
+}
+
+.vf-achOverallPct {
+  font-size: 12px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.78);
+}
+
+.vf-progressBar {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.vf-progressFill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(135deg, #7b61ff, #ff5fd7);
+}
+
+.vf-achMeta {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.vf-achReqs {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.vf-achReq {
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+  padding: 10px;
+}
+
+.vf-achReqMain {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vf-achReqLabel {
+  font-weight: 900;
+  font-size: 12px;
+}
+
+.vf-achReqValue {
+  font-size: 12px;
+  color: rgba(255,255,255,0.78);
+  white-space: nowrap;
+}
+
+.vf-achReqBar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.vf-achReqBarFill {
+  height: 100%;
+  width: 0%;
+  background: rgba(123, 97, 255, 0.85);
+}
