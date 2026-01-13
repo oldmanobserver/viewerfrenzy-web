@@ -9,6 +9,7 @@ import { handleOptions } from "../../../_lib/cors.js";
 import { jsonResponse } from "../../../_lib/response.js";
 import { requireWebsiteUser } from "../../../_lib/twitchAuth.js";
 import { listAllJsonRecords } from "../../../_lib/kv.js";
+import { awardAchievementsForViewers } from "../../../_lib/achievements.js";
 
 function nowMs() {
   return Date.now();
@@ -332,12 +333,15 @@ export async function onRequest(context) {
   `;
 
   const statements = [];
+  const viewerIds = new Set();
 
   for (const r of resultsRaw) {
     if (!r) continue;
 
     const viewerUserId = toStr(r?.userId) || toStr(r?.login);
     if (!viewerUserId) continue;
+
+    viewerIds.add(viewerUserId);
 
     const viewerLogin = toLower(r?.login);
     const displayName = toStr(r?.displayName);
@@ -382,6 +386,17 @@ export async function onRequest(context) {
     await env.VF_D1_STATS.batch(chunk);
   }
 
+  // Award achievements (best-effort). This is intentionally after results are written.
+  let achievementsUnlocked = [];
+  try {
+    achievementsUnlocked = await awardAchievementsForViewers(env, Array.from(viewerIds), {
+      source: "competition",
+      sourceRef: String(competitionId || competitionUuid || ""),
+    });
+  } catch {
+    achievementsUnlocked = [];
+  }
+
   return jsonResponse(request, {
     ok: true,
     competitionUuid,
@@ -389,5 +404,6 @@ export async function onRequest(context) {
     competitionId,
     resultsReceived: resultsRaw.length,
     resultsWritten: statements.length,
+    achievementsUnlocked,
   });
 }

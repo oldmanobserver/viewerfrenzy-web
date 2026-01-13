@@ -2,6 +2,7 @@
 import { handleOptions } from "../../../_lib/cors.js";
 import { jsonResponse } from "../../../_lib/response.js";
 import { requireWebsiteUser } from "../../../_lib/twitchAuth.js";
+import { recordViewerAction, awardAchievementsForViewers } from "../../../_lib/achievements.js";
 
 const COMPETITIONS = ["ground", "resort", "space", "trackfield", "water", "winter"];
 
@@ -150,7 +151,25 @@ export async function onRequest(context) {
 
     await kv.put(userId, JSON.stringify(record));
 
-    return jsonResponse(request, { ok: true, vehicleType: (type || "").toLowerCase(), userId, value: record });
+    // Achievements hook (best-effort):
+    // Record that the user used the website to set a default vehicle.
+    // This enables criteria like: defaultVehicleSets>=1
+    let achievementsUnlocked = [];
+    try {
+      const t = (type || "").toLowerCase();
+      await recordViewerAction(env, userId, "default_vehicle_set");
+      if (t) await recordViewerAction(env, userId, `default_vehicle_set_${t}`);
+
+      // Evaluate + award any achievements that depend on this action.
+      achievementsUnlocked = await awardAchievementsForViewers(env, [userId], {
+        source: "website",
+        sourceRef: `vehicle_default:${t}`,
+      });
+    } catch {
+      achievementsUnlocked = [];
+    }
+
+    return jsonResponse(request, { ok: true, vehicleType: (type || "").toLowerCase(), userId, value: record, achievementsUnlocked });
   }
 
   return jsonResponse(request, { error: "method_not_allowed" }, 405);

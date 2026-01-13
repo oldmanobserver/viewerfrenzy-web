@@ -72,3 +72,45 @@ CREATE TABLE IF NOT EXISTS competition_results (
 
 CREATE INDEX IF NOT EXISTS idx_results_competition ON competition_results(competition_id, finish_position);
 CREATE INDEX IF NOT EXISTS idx_results_viewer ON competition_results(viewer_user_id, competition_id);
+
+-- ---------------------------------------------------------------------------
+-- Achievements (MVP)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS achievements (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  description TEXT,
+  disabled INTEGER NOT NULL DEFAULT 0,
+  criteria TEXT NOT NULL,
+  created_at_ms INTEGER NOT NULL,
+  updated_at_ms INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_achievements_disabled ON achievements(disabled, id);
+
+CREATE TABLE IF NOT EXISTS viewer_achievements (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  viewer_user_id TEXT NOT NULL,
+  achievement_id INTEGER NOT NULL,
+  unlocked_at_ms INTEGER NOT NULL,
+  source TEXT,
+  source_ref TEXT,
+  FOREIGN KEY (achievement_id) REFERENCES achievements(id) ON DELETE CASCADE,
+  UNIQUE (viewer_user_id, achievement_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_viewer_achievements_viewer ON viewer_achievements(viewer_user_id, unlocked_at_ms DESC);
+CREATE INDEX IF NOT EXISTS idx_viewer_achievements_achievement ON viewer_achievements(achievement_id, unlocked_at_ms DESC);
+
+CREATE TABLE IF NOT EXISTS viewer_actions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  viewer_user_id TEXT NOT NULL,
+  action_key TEXT NOT NULL,
+  count INTEGER NOT NULL DEFAULT 0,
+  first_at_ms INTEGER,
+  last_at_ms INTEGER,
+  UNIQUE (viewer_user_id, action_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_viewer_actions_viewer_key ON viewer_actions(viewer_user_id, action_key);
