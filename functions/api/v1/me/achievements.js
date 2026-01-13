@@ -1,9 +1,9 @@
 // functions/api/v1/me/achievements.js
 // Authenticated endpoint: list achievements unlocked by the current website user.
 
-import { handleOptions } from "../../../../_lib/cors.js";
-import { jsonResponse } from "../../../../_lib/response.js";
-import { requireWebsiteUser } from "../../../../_lib/twitchAuth.js";
+import { handleOptions } from "../../../_lib/cors.js";
+import { jsonResponse } from "../../../_lib/response.js";
+import { requireWebsiteUser } from "../../../_lib/twitchAuth.js";
 
 function toStr(v) {
   return String(v ?? "").trim();

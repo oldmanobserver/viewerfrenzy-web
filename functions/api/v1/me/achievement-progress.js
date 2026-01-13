@@ -1,10 +1,10 @@
 // functions/api/v1/me/achievement-progress.js
 // Authenticated endpoint: list all active achievements + completion/progress for the current website user.
 
-import { handleOptions } from "../../../../_lib/cors.js";
-import { jsonResponse } from "../../../../_lib/response.js";
-import { requireWebsiteUser } from "../../../../_lib/twitchAuth.js";
-import { getAchievementProgressForViewer } from "../../../../_lib/achievements.js";
+import { handleOptions } from "../../../_lib/cors.js";
+import { jsonResponse } from "../../../_lib/response.js";
+import { requireWebsiteUser } from "../../../_lib/twitchAuth.js";
+import { getAchievementProgressForViewer } from "../../../_lib/achievements.js";
 
 function toStr(v) {
   return String(v ?? "").trim();
