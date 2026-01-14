@@ -469,6 +469,11 @@ select.vf-input optgroup {
   background: rgba(255, 215, 90, 0.10);
 }
 
+.vf-tileBadgeLock {
+  border-color: rgba(255, 120, 120, 0.40);
+  background: rgba(255, 120, 120, 0.10);
+}
+
 .vf-actions {
   display: flex;
   gap: 10px;
@@ -570,6 +575,18 @@ select.vf-input optgroup {
 .vf-vehicleTile:hover {
   background: rgba(255,255,255,0.07);
   border-color: rgba(255,255,255,0.14);
+}
+
+.vf-vehicleTile.is-locked {
+  opacity: 0.60;
+  filter: grayscale(0.55);
+  cursor: not-allowed;
+}
+
+.vf-vehicleTile.is-locked:hover {
+  transform: none;
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.10);
 }
 
 .vf-vehicleTile.is-selected {

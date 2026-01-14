@@ -221,6 +221,14 @@ async function init() {
     pools: null,         // response.pools
     disabledSet: new Set(),
     eligibleByType: new Map(),
+
+    // Vehicle unlocks (v0.5+)
+    // - unlockRules: vehicleId -> { free: boolean, achievementId: number }
+    // - alwaysUnlockedSet: union of competition defaults + game defaults
+    // - unlockedAchievementIds: achievements already unlocked by current user
+    unlockRules: {},
+    alwaysUnlockedSet: new Set(),
+    unlockedAchievementIds: new Set(),
   };
 
   // Load vehicle eligibility pools (public, no auth)
@@ -229,6 +237,17 @@ async function init() {
     if (poolsResp?.ok && poolsResp?.pools) {
       state.pools = poolsResp.pools;
       state.disabledSet = new Set(poolsResp.disabledIds || []);
+      state.unlockRules = poolsResp.unlockRules && typeof poolsResp.unlockRules === "object" ? poolsResp.unlockRules : {};
+
+      // "Competition defaults" (default pool vehicles) are always unlocked.
+      state.alwaysUnlockedSet = new Set();
+      for (const v of Object.values(poolsResp.pools || {})) {
+        for (const id of Array.isArray(v?.defaultIds) ? v.defaultIds : []) {
+          const s = String(id || "").trim();
+          if (s) state.alwaysUnlockedSet.add(s);
+        }
+      }
+
       state.eligibleByType = new Map();
       for (const [t, v] of Object.entries(poolsResp.pools)) {
         const ids = Array.isArray(v?.eligibleIds) ? v.eligibleIds : [];
@@ -237,6 +256,30 @@ async function init() {
     }
   } catch {
     // Non-fatal: fall back to showing the full catalog.
+  }
+
+  // Load game defaults (public, no auth). These are always unlocked.
+  try {
+    const gd = await api.getGameDefaultVehicles();
+    if (gd?.ok && gd?.defaults && typeof gd.defaults === "object") {
+      for (const v of Object.values(gd.defaults)) {
+        const vid = String(v?.vehicleId || "").trim();
+        if (vid) state.alwaysUnlockedSet.add(vid);
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  // Load viewer's unlocked achievements (auth required).
+  try {
+    const a = await api.getMyUnlockedAchievements(session.auth);
+    const ids = (Array.isArray(a?.achievements) ? a.achievements : [])
+      .map((x) => Number(x?.achievementId || 0) || 0)
+      .filter((n) => n > 0);
+    state.unlockedAchievementIds = new Set(ids);
+  } catch {
+    // ignore (will treat achievement-gated vehicles as locked)
   }
 
   // UI skeleton
@@ -401,15 +444,49 @@ async function init() {
     return state.serverDefaults[state.type];
   }
 
+  function unlockRuleFor(vehicleId) {
+    const id = String(vehicleId || "").trim();
+    if (!id) return null;
+    const rule = state.unlockRules ? state.unlockRules[id] : null;
+    return rule && typeof rule === "object" ? rule : null;
+  }
+
+  function isVehicleUnlocked(vehicleId) {
+    const id = String(vehicleId || "").trim();
+    if (!id) return false;
+    if (isRandomPlaceholderId(id)) return true; // random uses default pools
+
+    if (state.alwaysUnlockedSet && state.alwaysUnlockedSet.has(id)) return true;
+
+    const rule = unlockRuleFor(id);
+    if (rule) {
+      if (Boolean(rule.free)) return true;
+      const achId = Number(rule.achievementId || 0) || 0;
+      if (achId > 0 && state.unlockedAchievementIds && state.unlockedAchievementIds.has(achId)) return true;
+    }
+
+    return false;
+  }
+
+  function lockReason(vehicleId) {
+    if (isRandomPlaceholderId(vehicleId)) return "";
+    if (state.alwaysUnlockedSet && state.alwaysUnlockedSet.has(String(vehicleId))) return "";
+    const rule = unlockRuleFor(vehicleId);
+    if (rule && Number(rule.achievementId || 0) > 0) {
+      return `Requires achievement #${Number(rule.achievementId || 0)}`;
+    }
+    return "Locked";
+  }
+
   function effectiveSelectedId() {
-    if (state.selectedId && !isRandomPlaceholderId(state.selectedId)) return state.selectedId;
+    if (state.selectedId && !isRandomPlaceholderId(state.selectedId) && isVehicleUnlocked(state.selectedId)) return state.selectedId;
 
     const record = getServerRecord();
-    if (record && record.vehicleId && !isRandomPlaceholderId(record.vehicleId)) return record.vehicleId;
+    if (record && record.vehicleId && !isRandomPlaceholderId(record.vehicleId) && isVehicleUnlocked(record.vehicleId)) return record.vehicleId;
 
     // No per-user default set: fall back to the first available option.
     const opts = filteredOptions();
-    const first = opts.find((o) => o?.id && !isRandomPlaceholderId(o.id));
+    const first = opts.find((o) => o?.id && !isRandomPlaceholderId(o.id) && isVehicleUnlocked(o.id));
     return first?.id || null;
   }
 
@@ -490,21 +567,27 @@ async function init() {
         const id = o.id || "";
         const isSelected = id === selectedId;
         const isDefault = id === defaultId;
+        const locked = !isVehicleUnlocked(id);
 
         const meta = optionMeta(state.type, o);
-        const badge = isDefault
+        const defaultBadge = isDefault
           ? `<div class="vf-tileBadge vf-tileBadgeStar">★ Default</div>`
           : "";
+        const lockedBadge = locked
+          ? `<div class="vf-tileBadge vf-tileBadgeLock">🔒 Locked</div>`
+          : "";
+
+        const tileMeta = [...[meta, locked ? lockReason(id) : ""].filter(Boolean)].join(" • ");
 
         return `
-          <div class="vf-vehicleTile ${isSelected ? "is-selected" : ""}" data-id="${escapeHtml(id)}" role="button" tabindex="0">
-            ${badge}
+          <div class="vf-vehicleTile ${isSelected ? "is-selected" : ""} ${locked ? "is-locked" : ""}" data-id="${escapeHtml(id)}" ${locked ? 'data-locked="1" aria-disabled="true"' : ""} role="button" tabindex="0">
+            ${defaultBadge}${lockedBadge}
             <div class="vf-tileThumb">
               <img class="vf-tileImg" data-veh-type="${escapeHtml(state.type)}" data-veh-id="${escapeHtml(id)}" alt="" loading="lazy" />
             </div>
             <div class="vf-tileInfo">
               <div class="vf-tileTitle">${escapeHtml(o.displayName || id)}</div>
-              ${meta ? `<div class="vf-tileMeta">${escapeHtml(meta)}</div>` : ""}
+              ${tileMeta ? `<div class="vf-tileMeta">${escapeHtml(tileMeta)}</div>` : ""}
               <div class="vf-tileId">${escapeHtml(id)}</div>
             </div>
           </div>
@@ -600,6 +683,11 @@ async function init() {
     const selectedId = effectiveSelectedId();
     if (!selectedId) {
       toast("No vehicle selected.");
+      return;
+    }
+
+    if (!isVehicleUnlocked(selectedId)) {
+      toast(`${lockReason(selectedId)}. You can't set a locked vehicle as your default.`);
       return;
     }
 
@@ -721,6 +809,11 @@ async function init() {
   function onTileActivate(tile) {
     const id = tile.getAttribute("data-id");
     if (!id) return;
+
+    if (!isVehicleUnlocked(id)) {
+      toast(`${lockReason(id)}. This vehicle is locked.`);
+      return;
+    }
 
     state.selectedId = id;
     // Reset rotation when selecting a new vehicle (feels better)

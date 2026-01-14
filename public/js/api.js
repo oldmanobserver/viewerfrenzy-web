@@ -85,6 +85,11 @@ export async function getVehiclePools() {
   return apiFetch("/api/v1/vehicle-pools", { method: "GET" });
 }
 
+// Public: per-competition default vehicles (ground/resort/space/etc)
+export async function getGameDefaultVehicles() {
+  return apiFetch("/api/v1/game-default-vehicles", { method: "GET" });
+}
+
 // Public: Seasons list
 export async function getSeasons() {
   return apiFetch("/api/v1/seasons", { method: "GET" });
@@ -119,4 +124,9 @@ export async function getLeaderboard(query = {}) {
 // Authenticated: Achievements + progress for current user
 export async function getMyAchievementProgress(auth) {
   return apiFetch("/api/v1/me/achievement-progress", { method: "GET", auth });
+}
+
+// Authenticated: list achievements already unlocked by current user
+export async function getMyUnlockedAchievements(auth) {
+  return apiFetch("/api/v1/me/achievements", { method: "GET", auth });
 }

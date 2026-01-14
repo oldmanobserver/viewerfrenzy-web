@@ -49,6 +49,9 @@ function normalizeAssignment(a) {
     vehicleId,
     disabled: Boolean(a.disabled),
     roles,
+    // Unlock rules (v0.5+)
+    unlockIsFree: Boolean(a?.unlockIsFree ?? a?.unlockFree ?? a?.unlock_no_achievement),
+    unlockAchievementId: Number(a?.unlockAchievementId || a?.unlockAchievement || a?.achievementId || 0) || 0,
   };
 }
 
@@ -118,6 +121,7 @@ async function buildPoolsResponse(request, env) {
           ...(Array.isArray(rec.warnings) && rec.warnings.length ? { warnings: rec.warnings } : {}),
           pools: normalizedPools,
           disabledIds: Array.isArray(rec.disabledIds) ? rec.disabledIds : [],
+          unlockRules: rec.unlockRules && typeof rec.unlockRules === "object" ? rec.unlockRules : {},
         });
       }
     } catch {
@@ -135,6 +139,7 @@ async function buildPoolsResponse(request, env) {
       generatedAt: new Date().toISOString(),
       pools: Object.fromEntries(COMPETITIONS.map((c) => [c, { eligibleIds: [], defaultIds: [] }])),
       disabledIds: [],
+      unlockRules: {},
     });
   }
 
@@ -165,10 +170,18 @@ async function buildPoolsResponse(request, env) {
   }
 
   const disabledIds = new Set();
+  const unlockRules = {};
 
   for (const a of assignsRaw) {
     const na = normalizeAssignment(a);
     if (!na) continue;
+
+    // Unlock rules: include if explicitly configured.
+    const achId = Number(na.unlockAchievementId || 0) || 0;
+    const isFree = Boolean(na.unlockIsFree);
+    if (isFree || achId > 0) {
+      unlockRules[na.vehicleId] = { free: isFree, achievementId: achId };
+    }
 
     if (na.disabled) {
       disabledIds.add(na.vehicleId);
@@ -195,6 +208,7 @@ async function buildPoolsResponse(request, env) {
       COMPETITIONS.map((c) => [c, { eligibleIds: Array.from(pools[c]).sort(), defaultIds: Array.from(defaults[c]).sort() }]),
     ),
     disabledIds: Array.from(disabledIds).sort(),
+    unlockRules,
   };
 
   // Best-effort: store computed result so future reads are O(1) even if the admin
@@ -202,10 +216,11 @@ async function buildPoolsResponse(request, env) {
   if (env.VF_KV_VEHICLE_POOLS) {
     try {
       const record = {
-        version: 1,
+        version: 2,
         generatedAt: resp.generatedAt,
         pools: resp.pools,
         disabledIds: resp.disabledIds,
+        unlockRules: resp.unlockRules,
         ...(warnings.length ? { warnings } : {}),
         updatedBy: "",
         reason: "computed_fallback",
