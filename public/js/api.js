@@ -130,3 +130,8 @@ export async function getMyAchievementProgress(auth) {
 export async function getMyUnlockedAchievements(auth) {
   return apiFetch("/api/v1/me/achievements", { method: "GET", auth });
 }
+
+// Public: list active (non-hidden) achievements.
+export async function getAchievements() {
+  return apiFetch("/api/v1/achievements", { method: "GET" });
+}

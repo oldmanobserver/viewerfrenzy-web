@@ -130,6 +130,9 @@ function saveUiState(state) {
         search: state.search,
         cols: state.cols,
         rows: state.rows,
+        showUnlocked: !!state.showUnlocked,
+        showLocked: !!state.showLocked,
+        achievementFilterId: Number(state.achievementFilterId || 0) || 0,
       }),
     );
   } catch {
@@ -211,6 +214,13 @@ async function init() {
     search: typeof uiSaved.search === "string" ? uiSaved.search : "",
     cols: clamp(Number(uiSaved.cols || 4), 1, 8),
     rows: clamp(Number(uiSaved.rows || 3), 1, 8),
+
+    // Filters
+    // Default behavior: show only unlocked vehicles (most user-friendly)
+    showUnlocked: uiSaved.showUnlocked === undefined ? true : !!uiSaved.showUnlocked,
+    showLocked: uiSaved.showLocked === undefined ? false : !!uiSaved.showLocked,
+    achievementFilterId: Number(uiSaved.achievementFilterId || 0) || 0,
+
     offset: 0,           // index into filtered options
     selectedId: null,    // currently selected vehicle id
     rotY: 0,             // preview rotation in degrees
@@ -229,7 +239,18 @@ async function init() {
     unlockRules: {},
     alwaysUnlockedSet: new Set(),
     unlockedAchievementIds: new Set(),
+
+    // Achievement definitions (public, non-hidden)
+    achievements: [],
+    achievementMap: new Map(),
+    achievementsLoaded: false,
+
+    // UI busy flag (saving/clearing)
+    actionBusy: false,
   };
+
+  // Safety: never allow a state where both are false (would show nothing).
+  if (!state.showUnlocked && !state.showLocked) state.showUnlocked = true;
 
   // Load vehicle eligibility pools (public, no auth)
   try {
@@ -282,6 +303,30 @@ async function init() {
     // ignore (will treat achievement-gated vehicles as locked)
   }
 
+  // Load public achievement definitions (non-hidden). Used for:
+  // - Achievement filter dropdown
+  // - Showing which achievement unlocks a selected locked vehicle
+  try {
+    const defs = await api.getAchievements();
+    const list = Array.isArray(defs?.achievements) ? defs.achievements : [];
+    state.achievements = list;
+    state.achievementMap = new Map();
+    for (const a of list) {
+      const id = Number(a?.id || 0) || 0;
+      if (id <= 0) continue;
+      state.achievementMap.set(id, {
+        id,
+        name: String(a?.name || "").trim(),
+        description: String(a?.description || "").trim(),
+      });
+    }
+    state.achievementsLoaded = true;
+  } catch {
+    state.achievements = [];
+    state.achievementMap = new Map();
+    state.achievementsLoaded = false;
+  }
+
   // UI skeleton
   root.innerHTML = `
     <div class="vf-card">
@@ -317,6 +362,18 @@ async function init() {
         </div>
       </div>
 
+      <div class="vf-row" style="margin-top: 10px; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
+        <div class="vf-field">
+          <span class="vf-fieldLabel">Show</span>
+          <div id="vf-lockFilterChips" class="vf-chipRow"></div>
+        </div>
+
+        <label class="vf-field" style="min-width: 240px;">
+          <span class="vf-fieldLabel">Achievement</span>
+          <select id="vf-achFilter" class="vf-input vf-inputSmall"></select>
+        </label>
+      </div>
+
       <div id="vf-typeChips" class="vf-chipRow" style="margin-top: 12px"></div>
       <div id="vf-pageInfo" class="vf-muted vf-small" style="margin-top: 10px"></div>
     </div>
@@ -342,6 +399,7 @@ async function init() {
           <div>
             <div class="vf-h2">Selected vehicle</div>
             <div class="vf-muted vf-small" id="vf-selectedLabel">Select a vehicle…</div>
+            <div class="vf-muted vf-small" id="vf-selectedUnlockInfo" style="margin-top: 6px" hidden></div>
           </div>
         </div>
 
@@ -369,6 +427,8 @@ async function init() {
 
   // Grab elements
   const elChips = root.querySelector("#vf-typeChips");
+  const elLockChips = root.querySelector("#vf-lockFilterChips");
+  const elAchFilter = root.querySelector("#vf-achFilter");
   const elSearch = root.querySelector("#vf-search");
   const elCols = root.querySelector("#vf-cols");
   const elRows = root.querySelector("#vf-rows");
@@ -378,6 +438,7 @@ async function init() {
   const elGridSubtitle = root.querySelector("#vf-gridSubtitle");
   const elServerStatus = root.querySelector("#vf-serverStatus");
   const elSelectedLabel = root.querySelector("#vf-selectedLabel");
+  const elSelectedUnlockInfo = root.querySelector("#vf-selectedUnlockInfo");
   const elPreviewViewport = root.querySelector("#vf-previewViewport");
   const elPreviewImg = root.querySelector("#vf-previewImg");
   const elSavedLabel = root.querySelector("#vf-savedDefaultLabel");
@@ -421,6 +482,34 @@ async function init() {
     if (state.disabledSet && state.disabledSet.size > 0) {
       opts = opts.filter((o) => !state.disabledSet.has(String(o?.id || "")));
     }
+
+    // Achievement filter: show only vehicles that are unlocked by the selected achievement.
+    const achFilterId = Number(state.achievementFilterId || 0) || 0;
+    if (achFilterId > 0) {
+      opts = opts.filter((o) => {
+        const id = String(o?.id || "").trim();
+        if (!id) return false;
+        const rule = unlockRuleFor(id);
+        const rid = Number(rule?.achievementId || 0) || 0;
+        return rid === achFilterId;
+      });
+    }
+
+    // Locked/unlocked filters.
+    // - Default: showUnlocked=true, showLocked=false
+    // - If both are true: show all
+    // - If both are false (shouldn't happen): fall back to unlocked
+    const showUnlocked = !!state.showUnlocked;
+    const showLocked = !!state.showLocked;
+    if (showUnlocked !== showLocked) {
+      opts = opts.filter((o) => {
+        const unlocked = isVehicleUnlocked(o?.id || "");
+        return showUnlocked ? unlocked : !unlocked;
+      });
+    } else if (!showUnlocked && !showLocked) {
+      opts = opts.filter((o) => isVehicleUnlocked(o?.id || ""));
+    }
+
     const filter = (state.search || "").trim().toLowerCase();
 
     if (!filter) return opts;
@@ -468,26 +557,58 @@ async function init() {
     return false;
   }
 
+  function achievementNameById(achievementId) {
+    const id = Number(achievementId || 0) || 0;
+    if (id <= 0) return "";
+    const a = state.achievementMap?.get(id) || null;
+    const name = String(a?.name || "").trim();
+    return name;
+  }
+
+  function achievementLabelForViewer(achievementId) {
+    const id = Number(achievementId || 0) || 0;
+    if (id <= 0) return "";
+
+    // If the achievement is hidden and the viewer hasn't unlocked it,
+    // it will NOT appear in the public list, so we show a placeholder.
+    const name = achievementNameById(id);
+    if (name) return name;
+
+    // If the public list failed to load, don't assume it's hidden.
+    if (!state.achievementsLoaded) return `Achievement #${id}`;
+
+    return "hidden achievement";
+  }
+
   function lockReason(vehicleId) {
     if (isRandomPlaceholderId(vehicleId)) return "";
     if (state.alwaysUnlockedSet && state.alwaysUnlockedSet.has(String(vehicleId))) return "";
     const rule = unlockRuleFor(vehicleId);
-    if (rule && Number(rule.achievementId || 0) > 0) {
-      return `Requires achievement #${Number(rule.achievementId || 0)}`;
-    }
+    const achId = Number(rule?.achievementId || 0) || 0;
+    if (rule && achId > 0) return `Requires: ${achievementLabelForViewer(achId)}`;
     return "Locked";
   }
 
-  function effectiveSelectedId() {
-    if (state.selectedId && !isRandomPlaceholderId(state.selectedId) && isVehicleUnlocked(state.selectedId)) return state.selectedId;
+  function selectedIdFromOptions(opts) {
+    const list = Array.isArray(opts) ? opts : [];
+    const idSet = new Set(list.map((o) => String(o?.id || "").trim()).filter(Boolean));
 
+    // 1) User selection (even if locked) – but only if it exists under current filters.
+    const sid = String(state.selectedId || "").trim();
+    if (sid) {
+      if (idSet.has(sid)) return sid;
+      // Selection is no longer visible (filters/search/type changed)
+      state.selectedId = null;
+    }
+
+    // 2) Server saved default (if present and visible)
     const record = getServerRecord();
-    if (record && record.vehicleId && !isRandomPlaceholderId(record.vehicleId) && isVehicleUnlocked(record.vehicleId)) return record.vehicleId;
+    const rid = String(record?.vehicleId || "").trim();
+    if (rid && idSet.has(rid)) return rid;
 
-    // No per-user default set: fall back to the first available option.
-    const opts = filteredOptions();
-    const first = opts.find((o) => o?.id && !isRandomPlaceholderId(o.id) && isVehicleUnlocked(o.id));
-    return first?.id || null;
+    // 3) First visible option
+    const first = String(list?.[0]?.id || "").trim();
+    return first || null;
   }
 
   function renderTypeChips() {
@@ -506,6 +627,71 @@ async function init() {
       .join("");
   }
 
+  function renderLockFilterChips() {
+    if (!elLockChips) return;
+
+    const unlockedActive = state.showUnlocked ? "is-active" : "";
+    const lockedActive = state.showLocked ? "is-active" : "";
+
+    elLockChips.innerHTML = `
+      <button class="vf-chip ${unlockedActive}" type="button" data-lock="unlocked">Unlocked</button>
+      <button class="vf-chip ${lockedActive}" type="button" data-lock="locked">Locked</button>
+    `;
+  }
+
+  function baseOptionsForType() {
+    const entry = currentTypeEntry();
+    let opts = entry?.options || [];
+
+    // Apply only the always-on filters (eligibility + disabled). No search / lock / achievement filters.
+    const eligibleSet = state.eligibleByType?.get(String(state.type).toLowerCase());
+    if (eligibleSet && eligibleSet.size > 0) {
+      opts = opts.filter((o) => eligibleSet.has(String(o?.id || "")));
+    }
+
+    if (state.disabledSet && state.disabledSet.size > 0) {
+      opts = opts.filter((o) => !state.disabledSet.has(String(o?.id || "")));
+    }
+
+    return opts;
+  }
+
+  function renderAchievementFilterSelect() {
+    if (!elAchFilter) return;
+
+    const usedAchIds = new Set();
+    for (const o of baseOptionsForType()) {
+      const id = String(o?.id || "").trim();
+      if (!id) continue;
+      const rule = unlockRuleFor(id);
+      const achId = Number(rule?.achievementId || 0) || 0;
+      if (achId > 0) usedAchIds.add(achId);
+    }
+
+    const list = (Array.isArray(state.achievements) ? state.achievements : [])
+      .filter((a) => usedAchIds.has(Number(a?.id || 0) || 0))
+      .sort((a, b) => (Number(a?.id || 0) || 0) - (Number(b?.id || 0) || 0));
+
+    // If the current selection isn't relevant in this mode, reset to All.
+    if (state.achievementFilterId > 0 && !usedAchIds.has(Number(state.achievementFilterId || 0) || 0)) {
+      state.achievementFilterId = 0;
+      saveUiState(state);
+    }
+
+    const optsHtml = [
+      `<option value="0">All achievements</option>`,
+      ...list.map((a) => {
+        const id = Number(a?.id || 0) || 0;
+        const name = String(a?.name || "").trim();
+        return `<option value="${id}">${escapeHtml(name || `Achievement #${id}`)}</option>`;
+      }),
+    ].join("");
+
+    elAchFilter.innerHTML = optsHtml;
+    elAchFilter.value = String(Number(state.achievementFilterId || 0) || 0);
+    elAchFilter.disabled = list.length === 0;
+  }
+
   function updateGridColumns() {
     // fixed column count (user controlled)
     elTiles.style.gridTemplateColumns = `repeat(${state.cols}, minmax(0, 1fr))`;
@@ -515,10 +701,21 @@ async function init() {
     const ps = pageSize();
     const colStep = state.rows;
 
+    const lockFilterLabel = state.showUnlocked && state.showLocked
+      ? "Unlocked + Locked"
+      : state.showUnlocked
+        ? "Unlocked"
+        : "Locked";
+
+    const achId = Number(state.achievementFilterId || 0) || 0;
+    const achLabel = achId > 0 ? achievementLabelForViewer(achId) : "";
+
     const info = [
       `Showing ${total ? shownStart + 1 : 0}-${shownEnd} of ${total}`,
       `• Page size ${ps} (${state.cols}×${state.rows})`,
       `• Column step ${colStep}`,
+      `• ${lockFilterLabel}`,
+      achId > 0 ? `• Achievement: ${achLabel}` : "",
       state.search ? `• Filter: "${state.search}"` : "",
     ]
       .filter(Boolean)
@@ -534,12 +731,8 @@ async function init() {
 
     clampOffset(total);
 
-    // If selected item no longer exists (e.g. search changed), reset to default/random.
-    const selId = effectiveSelectedId();
-    const exists = opts.some((o) => (o.id || "") === selId);
-    if (!exists) state.selectedId = null;
-
-    const selectedId = effectiveSelectedId();
+    // Determine selection (user-selected > server default > first visible).
+    const selectedId = selectedIdFromOptions(opts);
 
     const start = clamp(state.offset, 0, Math.max(0, total));
     const endExclusive = Math.min(total, start + pageSize());
@@ -580,7 +773,7 @@ async function init() {
         const tileMeta = [...[meta, locked ? lockReason(id) : ""].filter(Boolean)].join(" • ");
 
         return `
-          <div class="vf-vehicleTile ${isSelected ? "is-selected" : ""} ${locked ? "is-locked" : ""}" data-id="${escapeHtml(id)}" ${locked ? 'data-locked="1" aria-disabled="true"' : ""} role="button" tabindex="0">
+          <div class="vf-vehicleTile ${isSelected ? "is-selected" : ""} ${locked ? "is-locked" : ""}" data-id="${escapeHtml(id)}" ${locked ? 'data-locked="1"' : ""} role="button" tabindex="0">
             ${defaultBadge}${lockedBadge}
             <div class="vf-tileThumb">
               <img class="vf-tileImg" data-veh-type="${escapeHtml(state.type)}" data-veh-id="${escapeHtml(id)}" alt="" loading="lazy" />
@@ -613,13 +806,54 @@ async function init() {
     elPreviewImg.style.setProperty("--vf-rotZ", `0deg`);
   }
 
+  function updateActionButtons(selectedId) {
+    const id = String(selectedId || "").trim();
+    const isRandom = id && isRandomPlaceholderId(id);
+    const unlocked = id ? isVehicleUnlocked(id) : false;
+    const canSave = !!id && unlocked && !isRandom;
+
+    btnSave.disabled = state.actionBusy || !canSave;
+    btnClear.disabled = state.actionBusy;
+
+    // Helpful hover text
+    if (!id) {
+      btnSave.title = "Select a vehicle first";
+    } else if (isRandom) {
+      btnSave.title = "Use 'Clear Default' to use the default pool";
+    } else if (!unlocked) {
+      btnSave.title = "Locked vehicles can't be set as your default";
+    } else {
+      btnSave.title = "Save this vehicle as your default";
+    }
+  }
+
   function renderPreview() {
     const entry = currentTypeEntry();
-    const selId = effectiveSelectedId();
+    const selId = selectedIdFromOptions(filteredOptions());
     const opt = findOption(entry, selId);
 
     const displayName = opt?.displayName || (selId ? selId : "(none)");
     elSelectedLabel.textContent = selId ? `Selected: ${displayName} (${selId})` : "Select a vehicle…";
+
+    // Locked vehicle info (and what unlocks it)
+    if (!elSelectedUnlockInfo) {
+      // no-op
+    } else if (!selId) {
+      elSelectedUnlockInfo.hidden = true;
+      elSelectedUnlockInfo.textContent = "";
+    } else if (isRandomPlaceholderId(selId)) {
+      elSelectedUnlockInfo.hidden = false;
+      elSelectedUnlockInfo.textContent = "Default pool (Random). Use 'Clear Default' to set it.";
+    } else if (!isVehicleUnlocked(selId)) {
+      const rule = unlockRuleFor(selId);
+      const achId = Number(rule?.achievementId || 0) || 0;
+      const achLabel = achId > 0 ? achievementLabelForViewer(achId) : "No achievement assigned";
+      elSelectedUnlockInfo.hidden = false;
+      elSelectedUnlockInfo.textContent = `Locked • Unlocks via ${achLabel}`;
+    } else {
+      elSelectedUnlockInfo.hidden = true;
+      elSelectedUnlockInfo.textContent = "";
+    }
 
     // When the preview image finishes loading, compute an alpha-bounds based
     // translateY so the visible vehicle is visually centered.
@@ -646,6 +880,9 @@ async function init() {
     }
 
     updatePreviewTransform();
+
+    // Buttons depend on selection state
+    updateActionButtons(selId);
   }
 
   async function ensureServerDefaultLoaded() {
@@ -680,9 +917,14 @@ async function init() {
     const type = state.type;
     const entry = currentTypeEntry();
 
-    const selectedId = effectiveSelectedId();
+    const selectedId = selectedIdFromOptions(filteredOptions());
     if (!selectedId) {
       toast("No vehicle selected.");
+      return;
+    }
+
+    if (isRandomPlaceholderId(selectedId)) {
+      toast("Use 'Clear Default' to use the default pool (Random).");
       return;
     }
 
@@ -695,8 +937,8 @@ async function init() {
     // (Empty string is reserved for 'cleared')
     const vehicleId = String(selectedId || "").trim();
 
-    btnSave.disabled = true;
-    btnClear.disabled = true;
+    state.actionBusy = true;
+    updateActionButtons(selectedId);
 
     try {
       const resp = await api.putVehicleDefault(type, vehicleId, session.auth);
@@ -718,8 +960,8 @@ async function init() {
         window.location.replace(`${window.location.origin}/index.html`);
       }
     } finally {
-      btnSave.disabled = false;
-      btnClear.disabled = false;
+      state.actionBusy = false;
+      updateActionButtons(selectedIdFromOptions(filteredOptions()));
     }
   }
 
@@ -727,8 +969,8 @@ async function init() {
     const type = state.type;
     const entry = currentTypeEntry();
 
-    btnSave.disabled = true;
-    btnClear.disabled = true;
+    state.actionBusy = true;
+    updateActionButtons(selectedIdFromOptions(filteredOptions()));
 
     try {
       // Empty string in the API represents "cleared" (no per-user override).
@@ -749,8 +991,8 @@ async function init() {
         window.location.replace(`${window.location.origin}/index.html`);
       }
     } finally {
-      btnSave.disabled = false;
-      btnClear.disabled = false;
+      state.actionBusy = false;
+      updateActionButtons(selectedIdFromOptions(filteredOptions()));
     }
   }
 
@@ -772,8 +1014,45 @@ async function init() {
     setError("");
 
     renderTypeChips();
+    renderAchievementFilterSelect();
     renderGrid();
     ensureServerDefaultLoaded();
+  }
+
+  function onLockFilterClick(ev) {
+    const btn = ev.target.closest("button[data-lock]");
+    if (!btn) return;
+
+    const kind = btn.getAttribute("data-lock");
+    if (kind === "unlocked") {
+      state.showUnlocked = !state.showUnlocked;
+    } else if (kind === "locked") {
+      state.showLocked = !state.showLocked;
+    }
+
+    // Prevent "show nothing" state
+    if (!state.showUnlocked && !state.showLocked) state.showUnlocked = true;
+
+    state.offset = 0;
+    saveUiState(state);
+    renderLockFilterChips();
+    renderGrid();
+  }
+
+  function onAchievementFilterChange() {
+    const id = Number(elAchFilter?.value || 0) || 0;
+    state.achievementFilterId = id;
+
+    // If the user is filtering by an achievement, they almost always want to see
+    // the locked vehicles that it will unlock.
+    if (id > 0 && !state.showLocked) {
+      state.showLocked = true;
+      renderLockFilterChips();
+    }
+
+    state.offset = 0;
+    saveUiState(state);
+    renderGrid();
   }
 
   function onSearchInput() {
@@ -809,11 +1088,6 @@ async function init() {
   function onTileActivate(tile) {
     const id = tile.getAttribute("data-id");
     if (!id) return;
-
-    if (!isVehicleUnlocked(id)) {
-      toast(`${lockReason(id)}. This vehicle is locked.`);
-      return;
-    }
 
     state.selectedId = id;
     // Reset rotation when selecting a new vehicle (feels better)
@@ -857,6 +1131,8 @@ async function init() {
 
   // Wire events
   elChips.addEventListener("click", onChipClick);
+  elLockChips.addEventListener("click", onLockFilterClick);
+  elAchFilter.addEventListener("change", onAchievementFilterChange);
   elSearch.addEventListener("input", onSearchInput);
   elCols.addEventListener("change", onColsRowsChange);
   elRows.addEventListener("change", onColsRowsChange);
@@ -894,6 +1170,8 @@ async function init() {
 
   // Initial render
   renderTypeChips();
+  renderLockFilterChips();
+  renderAchievementFilterSelect();
   updateGridColumns();
   renderGrid();
   ensureServerDefaultLoaded();

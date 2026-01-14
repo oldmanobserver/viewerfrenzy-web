@@ -580,7 +580,8 @@ select.vf-input optgroup {
 .vf-vehicleTile.is-locked {
   opacity: 0.60;
   filter: grayscale(0.55);
-  cursor: not-allowed;
+  /* Locked vehicles are still selectable (preview), just not settable as default. */
+  cursor: pointer;
 }
 
 .vf-vehicleTile.is-locked:hover {
