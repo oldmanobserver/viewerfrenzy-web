@@ -132,7 +132,10 @@ function saveUiState(state) {
         rows: state.rows,
         showUnlocked: !!state.showUnlocked,
         showLocked: !!state.showLocked,
-        achievementFilterId: Number(state.achievementFilterId || 0) || 0,
+        // Achievement filters
+        // Only one of these should be non-zero at a time.
+        achievementUnlockedFilterId: Number(state.achievementUnlockedFilterId || 0) || 0,
+        achievementLockedFilterId: Number(state.achievementLockedFilterId || 0) || 0,
       }),
     );
   } catch {
@@ -209,6 +212,14 @@ async function init() {
   });
 
   const uiSaved = loadUiState() || {};
+
+  // Legacy support: older UI stored a single achievementFilterId.
+  // New UI uses two dropdowns (unlocked vs locked). If we only have the legacy
+  // value, treat it as a "locked achievement" filter (best effort).
+  const legacyAchievementFilterId = Number(uiSaved.achievementFilterId || 0) || 0;
+  const savedUnlockedAchFilterId = Number(uiSaved.achievementUnlockedFilterId || 0) || 0;
+  const savedLockedAchFilterId = Number(uiSaved.achievementLockedFilterId || 0) || 0;
+
   const state = {
     type: uiSaved.type && availableTypes.includes(uiSaved.type) ? uiSaved.type : (availableTypes[0] || "ground"),
     search: typeof uiSaved.search === "string" ? uiSaved.search : "",
@@ -219,7 +230,10 @@ async function init() {
     // Default behavior: show only unlocked vehicles (most user-friendly)
     showUnlocked: uiSaved.showUnlocked === undefined ? true : !!uiSaved.showUnlocked,
     showLocked: uiSaved.showLocked === undefined ? false : !!uiSaved.showLocked,
-    achievementFilterId: Number(uiSaved.achievementFilterId || 0) || 0,
+    // Achievement filters (two dropdowns)
+    // Only one of these should be non-zero at a time.
+    achievementUnlockedFilterId: savedUnlockedAchFilterId,
+    achievementLockedFilterId: savedLockedAchFilterId || (savedUnlockedAchFilterId ? 0 : legacyAchievementFilterId),
 
     offset: 0,           // index into filtered options
     selectedId: null,    // currently selected vehicle id
@@ -251,6 +265,11 @@ async function init() {
 
   // Safety: never allow a state where both are false (would show nothing).
   if (!state.showUnlocked && !state.showLocked) state.showUnlocked = true;
+
+  // Safety: only one achievement dropdown filter can be active.
+  if (Number(state.achievementUnlockedFilterId || 0) !== 0 && Number(state.achievementLockedFilterId || 0) !== 0) {
+    state.achievementLockedFilterId = 0;
+  }
 
   // Load vehicle eligibility pools (public, no auth)
   try {
@@ -365,12 +384,26 @@ async function init() {
       <div class="vf-row" style="margin-top: 10px; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
         <div class="vf-field">
           <span class="vf-fieldLabel">Show</span>
-          <div id="vf-lockFilterChips" class="vf-chipRow"></div>
+          <div class="vf-toggleRow">
+            <label class="vf-toggle">
+              <input id="vf-showUnlocked" type="checkbox" />
+              <span>Unlocked</span>
+            </label>
+            <label class="vf-toggle">
+              <input id="vf-showLocked" type="checkbox" />
+              <span>Locked</span>
+            </label>
+          </div>
         </div>
 
         <label class="vf-field" style="min-width: 240px;">
-          <span class="vf-fieldLabel">Achievement</span>
-          <select id="vf-achFilter" class="vf-input vf-inputSmall"></select>
+          <span class="vf-fieldLabel">Unlocked achievements</span>
+          <select id="vf-achUnlockedFilter" class="vf-input vf-inputSmall"></select>
+        </label>
+
+        <label class="vf-field" style="min-width: 240px;">
+          <span class="vf-fieldLabel">Locked achievements</span>
+          <select id="vf-achLockedFilter" class="vf-input vf-inputSmall"></select>
         </label>
       </div>
 
@@ -427,8 +460,10 @@ async function init() {
 
   // Grab elements
   const elChips = root.querySelector("#vf-typeChips");
-  const elLockChips = root.querySelector("#vf-lockFilterChips");
-  const elAchFilter = root.querySelector("#vf-achFilter");
+  const elShowUnlocked = root.querySelector("#vf-showUnlocked");
+  const elShowLocked = root.querySelector("#vf-showLocked");
+  const elAchUnlockedFilter = root.querySelector("#vf-achUnlockedFilter");
+  const elAchLockedFilter = root.querySelector("#vf-achLockedFilter");
   const elSearch = root.querySelector("#vf-search");
   const elCols = root.querySelector("#vf-cols");
   const elRows = root.querySelector("#vf-rows");
@@ -459,6 +494,9 @@ async function init() {
   elCols.value = String(state.cols);
   elRows.value = String(state.rows);
 
+  if (elShowUnlocked) elShowUnlocked.checked = !!state.showUnlocked;
+  if (elShowLocked) elShowLocked.checked = !!state.showLocked;
+
   function setError(message) {
     elErr.hidden = !message;
     elErr.textContent = message || "";
@@ -483,15 +521,23 @@ async function init() {
       opts = opts.filter((o) => !state.disabledSet.has(String(o?.id || "")));
     }
 
-    // Achievement filter: show only vehicles that are unlocked by the selected achievement.
-    const achFilterId = Number(state.achievementFilterId || 0) || 0;
-    if (achFilterId > 0) {
+    // Achievement filter (two dropdowns): show only vehicles that are unlocked by the selected achievement.
+    // key:
+    //   0  => no filter
+    //  -1  => "hidden achievement" group (achievement id not present in public list)
+    //  >0  => specific achievement id
+    const { key: achFilterKey } = activeAchievementFilter();
+    if (achFilterKey !== 0) {
       opts = opts.filter((o) => {
         const id = String(o?.id || "").trim();
         if (!id) return false;
         const rule = unlockRuleFor(id);
         const rid = Number(rule?.achievementId || 0) || 0;
-        return rid === achFilterId;
+        if (achFilterKey === -1) {
+          // Hidden achievements: rid exists but we don't have its public definition.
+          return rid > 0 && (state.achievementMap ? !state.achievementMap.has(rid) : true);
+        }
+        return rid === achFilterKey;
       });
     }
 
@@ -531,6 +577,14 @@ async function init() {
 
   function getServerRecord() {
     return state.serverDefaults[state.type];
+  }
+
+  function activeAchievementFilter() {
+    const u = Number(state.achievementUnlockedFilterId || 0) || 0;
+    const l = Number(state.achievementLockedFilterId || 0) || 0;
+    if (u !== 0) return { key: u, source: "unlocked" };
+    if (l !== 0) return { key: l, source: "locked" };
+    return { key: 0, source: "" };
   }
 
   function unlockRuleFor(vehicleId) {
@@ -627,16 +681,10 @@ async function init() {
       .join("");
   }
 
+  // Lock/unlock visibility controls are now toggles (checkboxes).
   function renderLockFilterChips() {
-    if (!elLockChips) return;
-
-    const unlockedActive = state.showUnlocked ? "is-active" : "";
-    const lockedActive = state.showLocked ? "is-active" : "";
-
-    elLockChips.innerHTML = `
-      <button class="vf-chip ${unlockedActive}" type="button" data-lock="unlocked">Unlocked</button>
-      <button class="vf-chip ${lockedActive}" type="button" data-lock="locked">Locked</button>
-    `;
+    if (elShowUnlocked) elShowUnlocked.checked = !!state.showUnlocked;
+    if (elShowLocked) elShowLocked.checked = !!state.showLocked;
   }
 
   function baseOptionsForType() {
@@ -657,39 +705,90 @@ async function init() {
   }
 
   function renderAchievementFilterSelect() {
-    if (!elAchFilter) return;
+    if (!elAchUnlockedFilter || !elAchLockedFilter) return;
 
-    const usedAchIds = new Set();
-    for (const o of baseOptionsForType()) {
-      const id = String(o?.id || "").trim();
-      if (!id) continue;
-      const rule = unlockRuleFor(id);
-      const achId = Number(rule?.achievementId || 0) || 0;
-      if (achId > 0) usedAchIds.add(achId);
-    }
-
-    const list = (Array.isArray(state.achievements) ? state.achievements : [])
-      .filter((a) => usedAchIds.has(Number(a?.id || 0) || 0))
-      .sort((a, b) => (Number(a?.id || 0) || 0) - (Number(b?.id || 0) || 0));
-
-    // If the current selection isn't relevant in this mode, reset to All.
-    if (state.achievementFilterId > 0 && !usedAchIds.has(Number(state.achievementFilterId || 0) || 0)) {
-      state.achievementFilterId = 0;
-      saveUiState(state);
-    }
-
-    const optsHtml = [
-      `<option value="0">All achievements</option>`,
-      ...list.map((a) => {
+    const all = (Array.isArray(state.achievements) ? state.achievements : [])
+      .map((a) => {
         const id = Number(a?.id || 0) || 0;
         const name = String(a?.name || "").trim();
-        return `<option value="${id}">${escapeHtml(name || `Achievement #${id}`)}</option>`;
-      }),
+        return { id, name };
+      })
+      .filter((a) => a.id > 0)
+      .sort((a, b) => (a.name || `#${a.id}`).localeCompare(b.name || `#${b.id}`, undefined, { sensitivity: "base" }));
+
+    const unlocked = [];
+    const locked = [];
+    for (const a of all) {
+      if (state.unlockedAchievementIds && state.unlockedAchievementIds.has(a.id)) unlocked.push(a);
+      else locked.push(a);
+    }
+
+    // Hidden achievements: achievements referenced by unlock rules, but not present in the public list.
+    // We only expose them as a generic "hidden achievement" entry.
+    let hasHiddenUnlocked = false;
+    let hasHiddenLocked = false;
+    if (state.achievementsLoaded) {
+      const hiddenIds = new Set();
+      for (const o of baseOptionsForType()) {
+        const vid = String(o?.id || "").trim();
+        if (!vid) continue;
+        const rule = unlockRuleFor(vid);
+        const achId = Number(rule?.achievementId || 0) || 0;
+        if (achId > 0 && state.achievementMap && !state.achievementMap.has(achId)) {
+          hiddenIds.add(achId);
+        }
+      }
+      for (const hid of hiddenIds) {
+        if (state.unlockedAchievementIds && state.unlockedAchievementIds.has(hid)) hasHiddenUnlocked = true;
+        else hasHiddenLocked = true;
+      }
+    }
+
+    // Validate stored selections against the current unlocked/locked sets.
+    const uSel = Number(state.achievementUnlockedFilterId || 0) || 0;
+    const lSel = Number(state.achievementLockedFilterId || 0) || 0;
+
+    const unlockedIds = new Set(unlocked.map((a) => a.id));
+    const lockedIds = new Set(locked.map((a) => a.id));
+
+    let changed = false;
+    if (uSel !== 0) {
+      const ok = (uSel === -1 && hasHiddenUnlocked) || (uSel > 0 && unlockedIds.has(uSel));
+      if (!ok) {
+        state.achievementUnlockedFilterId = 0;
+        changed = true;
+      }
+    }
+    if (lSel !== 0) {
+      const ok = (lSel === -1 && hasHiddenLocked) || (lSel > 0 && lockedIds.has(lSel));
+      if (!ok) {
+        state.achievementLockedFilterId = 0;
+        changed = true;
+      }
+    }
+    if (changed) saveUiState(state);
+
+    // Build dropdowns.
+    const unlockedHtml = [
+      `<option value="0">All</option>`,
+      ...(hasHiddenUnlocked ? [`<option value="-1">hidden achievement</option>`] : []),
+      ...unlocked.map((a) => `<option value="${a.id}">${escapeHtml(a.name || `Achievement #${a.id}`)}</option>`),
     ].join("");
 
-    elAchFilter.innerHTML = optsHtml;
-    elAchFilter.value = String(Number(state.achievementFilterId || 0) || 0);
-    elAchFilter.disabled = list.length === 0;
+    const lockedHtml = [
+      `<option value="0">All</option>`,
+      ...(hasHiddenLocked ? [`<option value="-1">hidden achievement</option>`] : []),
+      ...locked.map((a) => `<option value="${a.id}">${escapeHtml(a.name || `Achievement #${a.id}`)}</option>`),
+    ].join("");
+
+    elAchUnlockedFilter.innerHTML = unlockedHtml;
+    elAchLockedFilter.innerHTML = lockedHtml;
+
+    elAchUnlockedFilter.value = String(Number(state.achievementUnlockedFilterId || 0) || 0);
+    elAchLockedFilter.value = String(Number(state.achievementLockedFilterId || 0) || 0);
+
+    elAchUnlockedFilter.disabled = unlocked.length === 0 && !hasHiddenUnlocked;
+    elAchLockedFilter.disabled = locked.length === 0 && !hasHiddenLocked;
   }
 
   function updateGridColumns() {
@@ -707,15 +806,22 @@ async function init() {
         ? "Unlocked"
         : "Locked";
 
-    const achId = Number(state.achievementFilterId || 0) || 0;
-    const achLabel = achId > 0 ? achievementLabelForViewer(achId) : "";
+    const { key: achKey, source: achSource } = activeAchievementFilter();
+    const achLabel = achKey === -1
+      ? "hidden achievement"
+      : achKey !== 0
+        ? achievementLabelForViewer(achKey)
+        : "";
+    const achInfo = achKey !== 0
+      ? `• ${achSource === "unlocked" ? "Unlocked achievement" : "Locked achievement"}: ${achLabel}`
+      : "";
 
     const info = [
       `Showing ${total ? shownStart + 1 : 0}-${shownEnd} of ${total}`,
       `• Page size ${ps} (${state.cols}×${state.rows})`,
       `• Column step ${colStep}`,
       `• ${lockFilterLabel}`,
-      achId > 0 ? `• Achievement: ${achLabel}` : "",
+      achInfo,
       state.search ? `• Filter: "${state.search}"` : "",
     ]
       .filter(Boolean)
@@ -1019,35 +1125,60 @@ async function init() {
     ensureServerDefaultLoaded();
   }
 
-  function onLockFilterClick(ev) {
-    const btn = ev.target.closest("button[data-lock]");
-    if (!btn) return;
+  function onLockToggleChange(ev) {
+    state.showUnlocked = !!elShowUnlocked?.checked;
+    state.showLocked = !!elShowLocked?.checked;
 
-    const kind = btn.getAttribute("data-lock");
-    if (kind === "unlocked") {
-      state.showUnlocked = !state.showUnlocked;
-    } else if (kind === "locked") {
-      state.showLocked = !state.showLocked;
+    // Prevent "show nothing" state (auto-revert the toggle that was just turned off).
+    if (!state.showUnlocked && !state.showLocked) {
+      if (ev?.target === elShowUnlocked) {
+        state.showUnlocked = true;
+        if (elShowUnlocked) elShowUnlocked.checked = true;
+      } else if (ev?.target === elShowLocked) {
+        state.showLocked = true;
+        if (elShowLocked) elShowLocked.checked = true;
+      } else {
+        state.showUnlocked = true;
+        if (elShowUnlocked) elShowUnlocked.checked = true;
+      }
     }
-
-    // Prevent "show nothing" state
-    if (!state.showUnlocked && !state.showLocked) state.showUnlocked = true;
 
     state.offset = 0;
     saveUiState(state);
-    renderLockFilterChips();
     renderGrid();
   }
 
-  function onAchievementFilterChange() {
-    const id = Number(elAchFilter?.value || 0) || 0;
-    state.achievementFilterId = id;
+  function onAchievementUnlockedFilterChange() {
+    const id = Number(elAchUnlockedFilter?.value || 0) || 0;
+    state.achievementUnlockedFilterId = id;
+    if (id !== 0) {
+      state.achievementLockedFilterId = 0;
+      if (elAchLockedFilter) elAchLockedFilter.value = "0";
+      // If they're filtering by an unlocked achievement, ensure unlocked is visible.
+      if (!state.showUnlocked) {
+        state.showUnlocked = true;
+        if (elShowUnlocked) elShowUnlocked.checked = true;
+      }
+    }
 
-    // If the user is filtering by an achievement, they almost always want to see
-    // the locked vehicles that it will unlock.
-    if (id > 0 && !state.showLocked) {
-      state.showLocked = true;
-      renderLockFilterChips();
+    state.offset = 0;
+    saveUiState(state);
+    renderGrid();
+  }
+
+  function onAchievementLockedFilterChange() {
+    const id = Number(elAchLockedFilter?.value || 0) || 0;
+    state.achievementLockedFilterId = id;
+    if (id !== 0) {
+      state.achievementUnlockedFilterId = 0;
+      if (elAchUnlockedFilter) elAchUnlockedFilter.value = "0";
+
+      // If the user is filtering by a locked achievement, they almost always want
+      // to see the locked vehicles that it will unlock.
+      if (!state.showLocked) {
+        state.showLocked = true;
+        if (elShowLocked) elShowLocked.checked = true;
+      }
     }
 
     state.offset = 0;
@@ -1131,8 +1262,10 @@ async function init() {
 
   // Wire events
   elChips.addEventListener("click", onChipClick);
-  elLockChips.addEventListener("click", onLockFilterClick);
-  elAchFilter.addEventListener("change", onAchievementFilterChange);
+  elShowUnlocked?.addEventListener("change", onLockToggleChange);
+  elShowLocked?.addEventListener("change", onLockToggleChange);
+  elAchUnlockedFilter?.addEventListener("change", onAchievementUnlockedFilterChange);
+  elAchLockedFilter?.addEventListener("change", onAchievementLockedFilterChange);
   elSearch.addEventListener("input", onSearchInput);
   elCols.addEventListener("change", onColsRowsChange);
   elRows.addEventListener("change", onColsRowsChange);
