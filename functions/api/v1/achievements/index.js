@@ -19,7 +19,8 @@ export async function onRequest(context) {
 
   let achievements = [];
   try {
-    achievements = await listActiveAchievements(env);
+    // Do not expose hidden achievements via the public endpoint.
+    achievements = await listActiveAchievements(env, { includeHidden: false });
   } catch (e) {
     return jsonResponse(
       request,

@@ -174,17 +174,36 @@ export function evaluateAchievementCriteria(clauses, metrics) {
 // D1 queries
 // ------------------------------
 
-export async function listActiveAchievements(env) {
+// List active achievement definitions.
+//
+// NOTE: v0.4 adds a `hidden` column. To allow safe deployments before the migration runs,
+// we attempt to select the column and fall back to the v0.3 schema if needed.
+export async function listActiveAchievements(env, { includeHidden = true } = {}) {
   if (!env?.VF_D1_STATS) return [];
 
-  const res = await env.VF_D1_STATS.prepare(
-    `SELECT id, name, description, disabled, criteria
-     FROM achievements
-     WHERE disabled = 0
-     ORDER BY id ASC`,
-  ).all();
+  const where = includeHidden ? "WHERE disabled = 0" : "WHERE disabled = 0 AND hidden = 0";
 
-  return Array.isArray(res?.results) ? res.results : [];
+  try {
+    const res = await env.VF_D1_STATS.prepare(
+      `SELECT id, name, description, disabled, hidden, criteria
+       FROM achievements
+       ${where}
+       ORDER BY id ASC`,
+    ).all();
+
+    return Array.isArray(res?.results) ? res.results : [];
+  } catch {
+    // v0.3 fallback (no hidden column yet)
+    const res = await env.VF_D1_STATS.prepare(
+      `SELECT id, name, description, disabled, criteria
+       FROM achievements
+       WHERE disabled = 0
+       ORDER BY id ASC`,
+    ).all();
+
+    const rows = Array.isArray(res?.results) ? res.results : [];
+    return rows.map((r) => ({ ...r, hidden: 0 }));
+  }
 }
 
 export async function recordViewerAction(env, viewerUserId, actionKey) {
@@ -582,6 +601,7 @@ export async function getAchievementProgressForViewer(env, viewerUserId) {
       id: Number(a?.id || 0) || 0,
       name: toStr(a?.name),
       description: toStr(a?.description),
+      hidden: Number(a?.hidden || 0) || 0,
       criteria: toStr(a?.criteria),
       clauses,
     });
@@ -603,6 +623,9 @@ export async function getAchievementProgressForViewer(env, viewerUserId) {
     if (!a?.id) continue;
 
     const unlockedAtMs = unlockMap.get(a.id) || 0;
+
+    // Hidden achievements are not shown to the viewer until they are unlocked.
+    if (a.hidden && unlockedAtMs <= 0) continue;
 
     const eligibleNow = evaluateAchievementCriteria(
       a.clauses.map((x) => ({ metric: x.metricRaw, op: x.op, value: x.target })),
