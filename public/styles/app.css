@@ -728,14 +728,35 @@ select.vf-input optgroup {
   border: 1px solid rgba(255,255,255,0.12);
   background: rgba(0,0,0,0.25);
   height: 260px;
-  display: grid;
-  place-items: center;
   overflow: hidden;
+
+  /*
+    IMPORTANT:
+    Use flex (not grid) for the preview viewport.
+
+    We previously used a grid container and sized the <img> using percentage
+    heights. In practice, some browsers can resolve percentage heights on
+    replaced elements (like <img>) inside auto-sized grid tracks in a way that
+    lets the image render larger than the viewport and then get clipped by
+    overflow:hidden.
+
+    Flex + explicit padding is more reliable for keeping every PNG fully
+    visible (no cut-off) while still filling the available preview area.
+  */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Breathing room without scaling tricks */
+  padding: 12px;
+  box-sizing: border-box;
 }
 
 .vf-previewImg {
-  width: 92%;
-  height: 92%;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
   object-position: center;
   /*
