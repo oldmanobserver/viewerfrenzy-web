@@ -85,10 +85,6 @@ export async function getVehiclePools() {
   return apiFetch("/api/v1/vehicle-pools", { method: "GET" });
 }
 
-// Public: per-competition default vehicles (ground/resort/space/etc)
-export async function getGameDefaultVehicles() {
-  return apiFetch("/api/v1/game-default-vehicles", { method: "GET" });
-}
 
 // Public: Seasons list
 export async function getSeasons() {

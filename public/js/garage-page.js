@@ -248,7 +248,7 @@ async function init() {
 
     // Vehicle unlocks (v0.5+)
     // - unlockRules: vehicleId -> { free: boolean, achievementId: number }
-    // - alwaysUnlockedSet: union of competition defaults + game defaults
+    // - alwaysUnlockedSet: competition defaults (default pool vehicles)
     // - unlockedAchievementIds: achievements already unlocked by current user
     unlockRules: {},
     alwaysUnlockedSet: new Set(),
@@ -296,19 +296,6 @@ async function init() {
     }
   } catch {
     // Non-fatal: fall back to showing the full catalog.
-  }
-
-  // Load game defaults (public, no auth). These are always unlocked.
-  try {
-    const gd = await api.getGameDefaultVehicles();
-    if (gd?.ok && gd?.defaults && typeof gd.defaults === "object") {
-      for (const v of Object.values(gd.defaults)) {
-        const vid = String(v?.vehicleId || "").trim();
-        if (vid) state.alwaysUnlockedSet.add(vid);
-      }
-    }
-  } catch {
-    // ignore
   }
 
   // Load viewer's unlocked achievements (auth required).

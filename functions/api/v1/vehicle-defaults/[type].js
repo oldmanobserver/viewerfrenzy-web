@@ -53,20 +53,6 @@ function toBool(v) {
   return false;
 }
 
-async function isVehicleGameDefault(env, vehicleId) {
-  if (!env?.VF_KV_GAME_DEFAULTS) return false;
-  try {
-    const rec = await env.VF_KV_GAME_DEFAULTS.get("defaults", { type: "json" });
-    if (!rec || typeof rec !== "object") return false;
-    for (const c of COMPETITIONS) {
-      const vid = String(rec?.[c]?.vehicleId || "").trim();
-      if (vid && vid === vehicleId) return true;
-    }
-  } catch {
-    return false;
-  }
-  return false;
-}
 
 async function validateVehicleEligibility(vehicleId, type, env, viewerUserId) {
   const t = String(type || "").trim().toLowerCase();
@@ -74,11 +60,8 @@ async function validateVehicleEligibility(vehicleId, type, env, viewerUserId) {
   if (!COMPETITIONS.includes(t)) return { ok: true }; // unknown type => don't block
 
   // If the vehicle system isn't configured, we can't reliably enforce eligibility
-  // or unlock rules. For v0.5+ we fail "closed" (treat as locked), except for
-  // GAME DEFAULT vehicles which must always work.
+  // or unlock rules.
   if (!env.VF_KV_VEHICLE_ASSIGNMENTS || !env.VF_KV_VEHICLE_ROLES) {
-    const isGameDefault = await isVehicleGameDefault(env, vehicleId);
-    if (isGameDefault) return { ok: true, unlockedBy: "game_default" };
     return {
       ok: false,
       error: "vehicle_unlock_system_not_configured",
@@ -134,14 +117,12 @@ async function validateVehicleEligibility(vehicleId, type, env, viewerUserId) {
   // Unlock logic:
   // 1) Competition defaults are always unlocked
   if (isCompetitionDefault) return { ok: true, unlocked: true, unlockedBy: "competition_default" };
-
-  // 2) Game defaults are always unlocked
   if (await isVehicleGameDefault(env, vehicleId)) return { ok: true, unlocked: true, unlockedBy: "game_default" };
 
-  // 3) Explicitly free (no achievement required)
+  // 2) Explicitly free (no achievement required)
   if (assignment.unlockIsFree) return { ok: true, unlocked: true, unlockedBy: "free" };
 
-  // 4) Achievement-gated
+  // 3) Achievement-gated
   const reqAchId = Number(assignment.unlockAchievementId || 0) || 0;
   if (reqAchId <= 0) {
     return { ok: false, error: "vehicle_locked", vehicleType: t, reason: "no_unlock_rule" };
