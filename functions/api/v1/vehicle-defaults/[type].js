@@ -117,7 +117,6 @@ async function validateVehicleEligibility(vehicleId, type, env, viewerUserId) {
   // Unlock logic:
   // 1) Competition defaults are always unlocked
   if (isCompetitionDefault) return { ok: true, unlocked: true, unlockedBy: "competition_default" };
-  if (await isVehicleGameDefault(env, vehicleId)) return { ok: true, unlocked: true, unlockedBy: "game_default" };
 
   // 2) Explicitly free (no achievement required)
   if (assignment.unlockIsFree) return { ok: true, unlocked: true, unlockedBy: "free" };
