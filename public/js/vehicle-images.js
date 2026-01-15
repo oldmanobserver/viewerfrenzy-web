@@ -1,5 +1,6 @@
 // Vehicle image helper.
-// Tries to load an image from /assets/vehicles/<type>/<id>.(webp|png|jpg|jpeg).
+// ViewerFrenzy currently ships vehicle artwork as .png files.
+// Tries to load: /assets/vehicles/<type>/<id>.png
 // If not found, falls back to a generated SVG placeholder.
 
 function hashHue(str) {
@@ -107,12 +108,8 @@ export function buildCandidateUrls({ type, id } = {}) {
   const encoded = encodeIdForPath(id);
 
   const base = `/assets/vehicles/${t}/${encoded}`;
-  return [
-    `${base}.webp`,
-    `${base}.png`,
-    `${base}.jpg`,
-    `${base}.jpeg`,
-  ];
+  // We only ship .png vehicle artwork. Keep candidate list minimal.
+  return [`${base}.png`];
 }
 
 /**

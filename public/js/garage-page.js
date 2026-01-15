@@ -16,138 +16,6 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
-// --- Preview auto-centering ---
-//
-// The exported vehicle PNGs are square (e.g., 1024×1024) with transparency.
-// Some models have uneven transparent padding, so the vehicle can *look* like
-// it's sitting low in the preview viewport.
-//
-// We fix that by scanning the image's alpha channel, computing the bounding box
-// of non-transparent pixels, and then applying a translateY to visually center it.
-//
-// Performance: We run this ONLY for the selected preview image (not every tile).
-function autoCenterPreviewImage(imgEl) {
-  if (!imgEl) return;
-
-  // Reset each time so we don't keep stale offsets.
-  imgEl.style.setProperty("--vf-previewShiftX", "0px");
-  imgEl.style.setProperty("--vf-previewShiftY", "0px");
-  imgEl.style.setProperty("--vf-previewScale", "1");
-
-  const w = imgEl.naturalWidth || 0;
-  const h = imgEl.naturalHeight || 0;
-  if (w <= 0 || h <= 0) return;
-
-  // Avoid huge work if something unexpected happens.
-  if (w > 4096 || h > 4096) return;
-
-  // Canvas requires CORS/same-origin to read pixels. If it becomes tainted, we just skip.
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  if (!ctx) return;
-
-  try {
-    ctx.clearRect(0, 0, w, h);
-    ctx.drawImage(imgEl, 0, 0);
-  } catch {
-    return;
-  }
-
-  let imgData;
-  try {
-    imgData = ctx.getImageData(0, 0, w, h);
-  } catch {
-    return;
-  }
-
-  const data = imgData.data;
-  const alphaThreshold = 8; // 0..255 (ignore near-transparent edges)
-
-  let minX = w;
-  let minY = h;
-  let maxX = -1;
-  let maxY = -1;
-
-  // Full scan (still small enough for a single selected preview).
-  for (let y = 0; y < h; y++) {
-    const rowStart = y * w * 4;
-    for (let x = 0; x < w; x++) {
-      const a = data[rowStart + x * 4 + 3];
-      if (a <= alphaThreshold) continue;
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
-    }
-  }
-
-  if (maxX < 0 || maxY < 0 || minX >= w || minY >= h) {
-    // Fully transparent image (shouldn't happen). Keep shift 0.
-    return;
-  }
-
-  const rect = imgEl.getBoundingClientRect();
-  const elW = rect.width || 0;
-  const elH = rect.height || 0;
-  if (elW <= 0 || elH <= 0) return;
-
-  // object-fit: contain => the drawn image may be letterboxed within the element.
-  const imgAspect = w / h;
-  const elAspect = elW / elH;
-
-  let drawnW = elW;
-  let drawnH = elH;
-  if (imgAspect > elAspect) {
-    drawnW = elW;
-    drawnH = elW / imgAspect;
-  } else {
-    drawnH = elH;
-    drawnW = elH * imgAspect;
-  }
-
-  // How far the *visible* pixels are from the image center.
-  const contentCenterX = (minX + maxX) * 0.5;
-  const contentCenterY = (minY + maxY) * 0.5;
-  const dxImagePx = contentCenterX - w * 0.5;
-  const dyImagePx = contentCenterY - h * 0.5;
-
-  // Convert image-space pixels -> CSS pixels (based on drawn size, not element size).
-  const dxCssRaw = -dxImagePx * (drawnW / w);
-  const dyCssRaw = -dyImagePx * (drawnH / h);
-
-  // Clamp raw shifts to avoid extreme outliers.
-  const rawX = Math.max(-240, Math.min(240, dxCssRaw));
-  const rawY = Math.max(-240, Math.min(240, dyCssRaw));
-
-  // Prevent clipping: if the shift is bigger than the padding between the viewport and the <img>,
-  // shrink the image a bit so the translation has room.
-  const vp = imgEl.closest(".vf-previewViewport") || imgEl.parentElement;
-  const vpRect = vp?.getBoundingClientRect?.() || null;
-  const marginX = vpRect ? Math.max(0, (vpRect.width - elW) * 0.5) : 0;
-  const marginY = vpRect ? Math.max(0, (vpRect.height - elH) * 0.5) : 0;
-
-  const needX = Math.max(0, Math.abs(rawX) - marginX);
-  const needY = Math.max(0, Math.abs(rawY) - marginY);
-
-  let scale = 1;
-  if (needX > 0 || needY > 0) {
-    const sx = 1 - (2 * needX) / Math.max(1, elW);
-    const sy = 1 - (2 * needY) / Math.max(1, elH);
-    scale = Math.max(0.65, Math.min(1, sx, sy));
-  }
-
-  // Translation should scale with the image so centering remains correct.
-  const shiftX = Math.max(-140, Math.min(140, rawX * scale));
-  const shiftY = Math.max(-140, Math.min(140, rawY * scale));
-
-  imgEl.style.setProperty("--vf-previewScale", `${scale.toFixed(4)}`);
-  imgEl.style.setProperty("--vf-previewShiftX", `${shiftX.toFixed(2)}px`);
-  imgEl.style.setProperty("--vf-previewShiftY", `${shiftY.toFixed(2)}px`);
-}
-
 function clamp(n, min, max) {
   return Math.min(Math.max(n, min), max);
 }
@@ -280,7 +148,6 @@ async function init() {
 
     offset: 0,           // index into filtered options
     selectedId: null,    // currently selected vehicle id
-    rotY: 0,             // preview rotation in degrees
     serverDefaults: {},  // type -> record|null|undefined
 
     // Vehicle role pools (loaded from /api/v1/vehicle-pools)
@@ -466,16 +333,8 @@ async function init() {
           </div>
         </div>
 
-        <div id="vf-previewViewport" class="vf-previewViewport" title="Drag to rotate">
+        <div id="vf-previewViewport" class="vf-previewViewport">
           <img id="vf-previewImg" class="vf-previewImg" alt="" draggable="false" />
-        </div>
-
-        <div class="vf-previewHint">Tip: drag the preview left/right to rotate.</div>
-
-        <div class="vf-previewControls">
-          <button id="vf-rotLeft" class="vf-btn vf-btnSecondary vf-btnTiny" type="button">⟲ Rotate</button>
-          <button id="vf-rotRight" class="vf-btn vf-btnSecondary vf-btnTiny" type="button">Rotate ⟳</button>
-          <button id="vf-rotReset" class="vf-btn vf-btnSecondary vf-btnTiny" type="button">Reset</button>
         </div>
 
         <div class="vf-previewControls">
@@ -512,10 +371,6 @@ async function init() {
   const btnPageDown = root.querySelector("#vf-pageDown");
   const btnPrevCol = root.querySelector("#vf-prevCol");
   const btnNextCol = root.querySelector("#vf-nextCol");
-
-  const btnRotLeft = root.querySelector("#vf-rotLeft");
-  const btnRotRight = root.querySelector("#vf-rotRight");
-  const btnRotReset = root.querySelector("#vf-rotReset");
 
   const btnSave = root.querySelector("#vf-saveDefaultBtn");
   const btnClear = root.querySelector("#vf-clearDefaultBtn");
@@ -936,12 +791,6 @@ async function init() {
     renderPreview();
   }
 
-  function updatePreviewTransform() {
-    if (!elPreviewImg) return;
-    elPreviewImg.style.setProperty("--vf-rotY", `${state.rotY}deg`);
-    elPreviewImg.style.setProperty("--vf-rotZ", `0deg`);
-  }
-
   function updateActionButtons(selectedId) {
     const id = String(selectedId || "").trim();
     const isRandom = id && isRandomPlaceholderId(id);
@@ -991,13 +840,6 @@ async function init() {
       elSelectedUnlockInfo.textContent = "";
     }
 
-    // When the preview image finishes loading, compute an alpha-bounds based
-    // translateY so the visible vehicle is visually centered.
-    elPreviewImg.onload = () => {
-      // Wait one frame so layout is up-to-date.
-      requestAnimationFrame(() => autoCenterPreviewImage(elPreviewImg));
-    };
-
     applyVehicleImage(elPreviewImg, {
       type: state.type,
       id: selId,
@@ -1014,9 +856,6 @@ async function init() {
       const when = server.updatedAt ? ` • Updated ${server.updatedAt}` : "";
       elSavedLabel.textContent = `Saved default on server: ${server.label}${when}`;
     }
-
-    updatePreviewTransform();
-
     // Buttons depend on selection state
     updateActionButtons(selId);
   }
@@ -1144,7 +983,6 @@ async function init() {
     state.type = type;
     state.selectedId = null;
     state.offset = 0;
-    state.rotY = 0;
 
     saveUiState(state);
     setError("");
@@ -1251,8 +1089,6 @@ async function init() {
     if (!id) return;
 
     state.selectedId = id;
-    // Reset rotation when selecting a new vehicle (feels better)
-    state.rotY = 0;
     renderGrid();
   }
 
@@ -1268,26 +1104,6 @@ async function init() {
     if (!tile) return;
     ev.preventDefault();
     onTileActivate(tile);
-  }
-
-  // Preview rotate drag
-  let dragging = false;
-  let lastX = 0;
-  function onPreviewDown(ev) {
-    dragging = true;
-    lastX = ev.clientX;
-    elPreviewViewport.setPointerCapture?.(ev.pointerId);
-  }
-  function onPreviewMove(ev) {
-    if (!dragging) return;
-    const dx = ev.clientX - lastX;
-    lastX = ev.clientX;
-    state.rotY += dx * 0.6;
-    updatePreviewTransform();
-  }
-  function onPreviewUp(ev) {
-    dragging = false;
-    elPreviewViewport.releasePointerCapture?.(ev.pointerId);
   }
 
   // Wire events
@@ -1318,15 +1134,6 @@ async function init() {
       stepOffset(+pageSize());
     }
   });
-
-  btnRotLeft.addEventListener("click", () => { state.rotY -= 15; updatePreviewTransform(); });
-  btnRotRight.addEventListener("click", () => { state.rotY += 15; updatePreviewTransform(); });
-  btnRotReset.addEventListener("click", () => { state.rotY = 0; updatePreviewTransform(); });
-
-  elPreviewViewport.addEventListener("pointerdown", onPreviewDown);
-  elPreviewViewport.addEventListener("pointermove", onPreviewMove);
-  elPreviewViewport.addEventListener("pointerup", onPreviewUp);
-  elPreviewViewport.addEventListener("pointercancel", onPreviewUp);
 
   btnSave.addEventListener("click", () => saveSelectionAsDefault());
   btnClear.addEventListener("click", () => clearServerDefault());

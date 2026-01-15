@@ -731,27 +731,19 @@ select.vf-input optgroup {
   display: grid;
   place-items: center;
   overflow: hidden;
-  perspective: 900px;
-  touch-action: none; /* allow pointer drag rotation */
 }
 
 .vf-previewImg {
   width: 92%;
   height: 92%;
   object-fit: contain;
+  object-position: center;
   /*
-    IMPORTANT:
-    Many of the exported PNGs are square (e.g., 1024×1024) and include transparent padding.
-    The tile thumbnails use object-fit: cover, which hides most padding.
-    The selected preview uses contain, which shows the full square. That can make some
-    vehicles LOOK like they sit lower than expected.
-    
-    We auto-center the visible (non-transparent) pixels by applying a translateY in JS.
-    (See: public/js/garage-page.js -> autoCenterPreviewImage)
+    Vehicle preview image.
+    We use object-fit: contain so the full PNG is visible, centered.
   */
   display: block;
-  transform: translate(var(--vf-previewShiftX, 0px), var(--vf-previewShiftY, 0px)) scale(var(--vf-previewScale, 1)) rotateY(var(--vf-rotY, 0deg)) rotateZ(var(--vf-rotZ, 0deg));
-  transform-style: preserve-3d;
+  transform: none;
   user-select: none;
   -webkit-user-drag: none;
 }
