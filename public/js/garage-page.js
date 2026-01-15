@@ -30,7 +30,9 @@ function autoCenterPreviewImage(imgEl) {
   if (!imgEl) return;
 
   // Reset each time so we don't keep stale offsets.
+  imgEl.style.setProperty("--vf-previewShiftX", "0px");
   imgEl.style.setProperty("--vf-previewShiftY", "0px");
+  imgEl.style.setProperty("--vf-previewScale", "1");
 
   const w = imgEl.naturalWidth || 0;
   const h = imgEl.naturalHeight || 0;
@@ -39,7 +41,7 @@ function autoCenterPreviewImage(imgEl) {
   // Avoid huge work if something unexpected happens.
   if (w > 4096 || h > 4096) return;
 
-  // Canvas must be same-origin. Your images are served from the same domain.
+  // Canvas requires CORS/same-origin to read pixels. If it becomes tainted, we just skip.
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
@@ -51,7 +53,6 @@ function autoCenterPreviewImage(imgEl) {
     ctx.clearRect(0, 0, w, h);
     ctx.drawImage(imgEl, 0, 0);
   } catch {
-    // If the canvas becomes tainted for any reason, just leave centered at 0.
     return;
   }
 
@@ -65,44 +66,86 @@ function autoCenterPreviewImage(imgEl) {
   const data = imgData.data;
   const alphaThreshold = 8; // 0..255 (ignore near-transparent edges)
 
+  let minX = w;
   let minY = h;
+  let maxX = -1;
   let maxY = -1;
 
-  // We only need Y bounds for vertical centering.
-  // Scan rows; break early where possible.
+  // Full scan (still small enough for a single selected preview).
   for (let y = 0; y < h; y++) {
     const rowStart = y * w * 4;
     for (let x = 0; x < w; x++) {
       const a = data[rowStart + x * 4 + 3];
-      if (a > alphaThreshold) {
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-        break;
-      }
+      if (a <= alphaThreshold) continue;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
     }
   }
 
-  if (maxY < 0 || minY >= h) {
+  if (maxX < 0 || maxY < 0 || minX >= w || minY >= h) {
     // Fully transparent image (shouldn't happen). Keep shift 0.
     return;
   }
 
-  // Compute how far the content center is from the image center.
-  const contentCenterY = (minY + maxY) * 0.5;
-  const imageCenterY = h * 0.5;
-  const dyImagePx = contentCenterY - imageCenterY; // + means content is below center
-
-  // Convert image-space pixels into CSS pixels based on how big the <img> is rendered.
   const rect = imgEl.getBoundingClientRect();
-  const renderedH = rect.height || 0;
-  if (renderedH <= 0) return;
+  const elW = rect.width || 0;
+  const elH = rect.height || 0;
+  if (elW <= 0 || elH <= 0) return;
 
-  const scaleY = renderedH / h;
-  const shiftCssPx = -dyImagePx * scaleY;
+  // object-fit: contain => the drawn image may be letterboxed within the element.
+  const imgAspect = w / h;
+  const elAspect = elW / elH;
 
-  // Clamp to something sane so we don't shift wildly if a model has a bad mesh/bounds.
-  const clamped = Math.max(-80, Math.min(80, shiftCssPx));
-  imgEl.style.setProperty("--vf-previewShiftY", `${clamped.toFixed(2)}px`);
+  let drawnW = elW;
+  let drawnH = elH;
+  if (imgAspect > elAspect) {
+    drawnW = elW;
+    drawnH = elW / imgAspect;
+  } else {
+    drawnH = elH;
+    drawnW = elH * imgAspect;
+  }
+
+  // How far the *visible* pixels are from the image center.
+  const contentCenterX = (minX + maxX) * 0.5;
+  const contentCenterY = (minY + maxY) * 0.5;
+  const dxImagePx = contentCenterX - w * 0.5;
+  const dyImagePx = contentCenterY - h * 0.5;
+
+  // Convert image-space pixels -> CSS pixels (based on drawn size, not element size).
+  const dxCssRaw = -dxImagePx * (drawnW / w);
+  const dyCssRaw = -dyImagePx * (drawnH / h);
+
+  // Clamp raw shifts to avoid extreme outliers.
+  const rawX = Math.max(-240, Math.min(240, dxCssRaw));
+  const rawY = Math.max(-240, Math.min(240, dyCssRaw));
+
+  // Prevent clipping: if the shift is bigger than the padding between the viewport and the <img>,
+  // shrink the image a bit so the translation has room.
+  const vp = imgEl.closest(".vf-previewViewport") || imgEl.parentElement;
+  const vpRect = vp?.getBoundingClientRect?.() || null;
+  const marginX = vpRect ? Math.max(0, (vpRect.width - elW) * 0.5) : 0;
+  const marginY = vpRect ? Math.max(0, (vpRect.height - elH) * 0.5) : 0;
+
+  const needX = Math.max(0, Math.abs(rawX) - marginX);
+  const needY = Math.max(0, Math.abs(rawY) - marginY);
+
+  let scale = 1;
+  if (needX > 0 || needY > 0) {
+    const sx = 1 - (2 * needX) / Math.max(1, elW);
+    const sy = 1 - (2 * needY) / Math.max(1, elH);
+    scale = Math.max(0.65, Math.min(1, sx, sy));
+  }
+
+  // Translation should scale with the image so centering remains correct.
+  const shiftX = Math.max(-140, Math.min(140, rawX * scale));
+  const shiftY = Math.max(-140, Math.min(140, rawY * scale));
+
+  imgEl.style.setProperty("--vf-previewScale", `${scale.toFixed(4)}`);
+  imgEl.style.setProperty("--vf-previewShiftX", `${shiftX.toFixed(2)}px`);
+  imgEl.style.setProperty("--vf-previewShiftY", `${shiftY.toFixed(2)}px`);
 }
 
 function clamp(n, min, max) {

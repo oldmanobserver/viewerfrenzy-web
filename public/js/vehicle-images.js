@@ -122,6 +122,15 @@ export function buildCandidateUrls({ type, id } = {}) {
 export function applyVehicleImage(imgEl, { type, id, label, variant = "thumb" } = {}) {
   if (!imgEl) return;
 
+  // Allow the image to be used in a <canvas> (for alpha-based centering) even when
+  // the admin site loads assets from viewerfrenzy.com (cross-origin).
+  // Requires the static asset host to send Access-Control-Allow-Origin (see public/_headers).
+  try {
+    imgEl.crossOrigin = "anonymous";
+  } catch {
+    // ignore
+  }
+
   const candidates = buildCandidateUrls({ type, id });
   let idx = 0;
 
