@@ -1,235 +1,288 @@
 // functions/api/v1/vehicle-pools.js
 //
-// Public endpoint used by:
-// - viewerfrenzy.com garage to decide which vehicles to show per competition type
-// - ViewerFrenzy Unity game to pick a fallback vehicle when a user has no default
+// Public endpoint that returns per-competition vehicle pools:
+// - allVehicles: all eligible vehicles for that competition type
+// - defaultVehicles: "competition default" vehicles (used when a viewer chooses Random)
 //
-// Requires KV bindings:
-// - VF_KV_VEHICLE_POOLS (preferred; precomputed for fast reads)
-// - VF_KV_VEHICLE_ROLES (fallback compute)
-// - VF_KV_VEHICLE_ASSIGNMENTS (fallback compute)
+// Caching strategy:
+// - Prefer precomputed cache in KV (VF_KV_VEHICLE_POOLS)
+// - If missing, compute from D1 (v0.6+)
+// - Otherwise fall back to legacy KV config tables
 
 import { handleOptions } from "../../_lib/cors.js";
 import { jsonResponse } from "../../_lib/response.js";
 import { listAllJsonRecords } from "../../_lib/kv.js";
+import { tableExists, toStr, toBool } from "../../_lib/dbUtil.js";
 
 const COMPETITIONS = ["ground", "resort", "space", "trackfield", "water", "winter"];
 
-function normalizeRole(r) {
-  if (!r || typeof r !== "object") return null;
-  const roleId = String(r.roleId || "").trim().toLowerCase();
-  if (!roleId) return null;
-  const out = { roleId };
-  for (const c of COMPETITIONS) out[c] = Boolean(r[c]);
-  return out;
+function buildEmptyPools() {
+  const pools = {};
+  for (const c of COMPETITIONS) {
+    pools[c] = { allVehicles: [], defaultVehicles: [] };
+  }
+  return pools;
 }
 
-function normalizeAssignment(a) {
-  if (!a || typeof a !== "object") return null;
-  const vehicleId = String(a.vehicleId || "").trim();
-  if (!vehicleId) return null;
+function normalizePools(poolRecord) {
+  const pools = buildEmptyPools();
+  const inPools = poolRecord?.pools || {};
+  for (const c of COMPETITIONS) {
+    const p = inPools[c] || {};
+    const allVehicles = Array.isArray(p.allVehicles) ? p.allVehicles : [];
+    const defaultVehicles = Array.isArray(p.defaultVehicles) ? p.defaultVehicles : [];
 
-  const roles = {};
-  const raw = a.roles;
-  if (Array.isArray(raw)) {
-    for (const r of raw) {
-      const rid = String(r?.roleId || "").trim().toLowerCase();
-      if (!rid) continue;
-      roles[rid] = { isDefault: Boolean(r?.isDefault) };
+    // de-dup and sanitize
+    pools[c].allVehicles = Array.from(new Set(allVehicles.map((x) => String(x || "").trim()).filter(Boolean))).sort();
+    pools[c].defaultVehicles = Array.from(
+      new Set(defaultVehicles.map((x) => String(x || "").trim()).filter(Boolean)),
+    ).sort();
+  }
+  return pools;
+}
+
+function pickDefaultCache(pools) {
+  const caches = { default: {} };
+  for (const c of COMPETITIONS) {
+    const d = pools[c]?.defaultVehicles || [];
+    const a = pools[c]?.allVehicles || [];
+    caches.default[c] = d[0] || a[0] || "";
+  }
+  return caches;
+}
+
+async function computePoolsFromD1(env) {
+  const db = env?.VF_D1_STATS;
+  if (!db) return null;
+
+  const ok =
+    (await tableExists(db, "vf_vehicle_roles")) &&
+    (await tableExists(db, "vf_vehicle_role_competitions")) &&
+    (await tableExists(db, "vf_vehicle_assignments")) &&
+    (await tableExists(db, "vf_vehicle_assignment_roles"));
+
+  if (!ok) return null;
+
+  // role -> set(competition_type)
+  const roleIdsRs = await db.prepare("SELECT vehicle_role_id FROM vf_vehicle_roles").all();
+  const roleIds = (roleIdsRs?.results || []).map((r) => toStr(r?.vehicle_role_id).toLowerCase()).filter(Boolean);
+
+  const compByRole = new Map();
+  for (const rid of roleIds) compByRole.set(rid, new Set());
+
+  const compRs = await db.prepare("SELECT vehicle_role_id, competition_type FROM vf_vehicle_role_competitions").all();
+  for (const r of Array.isArray(compRs?.results) ? compRs.results : []) {
+    const rid = toStr(r?.vehicle_role_id).toLowerCase();
+    const ct = toStr(r?.competition_type).toLowerCase();
+    if (!rid || !ct) continue;
+    if (!compByRole.has(rid)) compByRole.set(rid, new Set());
+    compByRole.get(rid).add(ct);
+  }
+
+  // assignment base (disabled)
+  const aRs = await db.prepare("SELECT vehicle_id, disabled, unlock_is_free, unlock_achievement_id FROM vf_vehicle_assignments").all();
+  const assignments = new Map();
+  for (const r of Array.isArray(aRs?.results) ? aRs.results : []) {
+    const vid = toStr(r?.vehicle_id);
+    if (!vid) continue;
+    assignments.set(vid, {
+      vehicleId: vid,
+      disabled: toBool(r?.disabled),
+      unlockIsFree: toBool(r?.unlock_is_free),
+      unlockAchievementId: Number(r?.unlock_achievement_id || 0) || 0,
+    });
+  }
+
+  // assignment roles
+  const arRs = await db.prepare("SELECT vehicle_id, vehicle_role_id, is_default FROM vf_vehicle_assignment_roles").all();
+  const rolesByVehicle = new Map();
+  for (const r of Array.isArray(arRs?.results) ? arRs.results : []) {
+    const vid = toStr(r?.vehicle_id);
+    const rid = toStr(r?.vehicle_role_id).toLowerCase();
+    if (!vid || !rid) continue;
+    if (!rolesByVehicle.has(vid)) rolesByVehicle.set(vid, []);
+    rolesByVehicle.get(vid).push({ roleId: rid, isDefault: toBool(r?.is_default) });
+  }
+
+  const pools = buildEmptyPools();
+  const disabledVehicles = [];
+  const unlockRules = {};
+
+  for (const [vehicleId, a] of assignments.entries()) {
+    if (a.disabled) {
+      disabledVehicles.push(vehicleId);
+      continue;
     }
-  } else if (raw && typeof raw === "object") {
-    for (const [ridRaw, v] of Object.entries(raw)) {
-      const rid = String(ridRaw || "").trim().toLowerCase();
-      if (!rid) continue;
-      roles[rid] = { isDefault: Boolean(v?.isDefault ?? v) };
+
+    unlockRules[vehicleId] = {
+      unlockIsFree: a.unlockIsFree,
+      unlockAchievementId: a.unlockAchievementId,
+    };
+
+    const roleLinks = rolesByVehicle.get(vehicleId) || [];
+    for (const link of roleLinks) {
+      const comps = compByRole.get(link.roleId);
+      if (!comps || comps.size === 0) continue;
+
+      for (const ct of comps) {
+        if (!COMPETITIONS.includes(ct)) continue;
+        pools[ct].allVehicles.push(vehicleId);
+        if (link.isDefault) {
+          pools[ct].defaultVehicles.push(vehicleId);
+        }
+      }
     }
   }
 
+  // normalize
+  const normalizedPools = normalizePools({ pools });
+
   return {
-    vehicleId,
-    disabled: Boolean(a.disabled),
-    roles,
-    // Unlock rules (v0.5+)
-    unlockIsFree: Boolean(a?.unlockIsFree ?? a?.unlockFree ?? a?.unlock_no_achievement),
-    unlockAchievementId: Number(a?.unlockAchievementId || a?.unlockAchievement || a?.achievementId || 0) || 0,
+    version: 2,
+    generatedAt: new Date().toISOString(),
+    pools: normalizedPools,
+    disabledVehicles: Array.from(new Set(disabledVehicles)).sort(),
+    unlockRules,
+    caches: pickDefaultCache(normalizedPools),
+    meta: {
+      computedFrom: "d1",
+      counts: {
+        roles: roleIds.length,
+        assignments: assignments.size,
+      },
+    },
+  };
+}
+
+async function computePoolsFromLegacyKv(env) {
+  if (!env?.VF_KV_VEHICLE_ROLES || !env?.VF_KV_VEHICLE_ASSIGNMENTS) return null;
+
+  const roles = await listAllJsonRecords(env.VF_KV_VEHICLE_ROLES);
+  const roleById = {};
+  for (const r of roles || []) {
+    const rid = toStr(r?.roleId).toLowerCase();
+    if (!rid) continue;
+    roleById[rid] = r;
+  }
+
+  const assignments = await listAllJsonRecords(env.VF_KV_VEHICLE_ASSIGNMENTS);
+
+  const pools = buildEmptyPools();
+  const disabledVehicles = [];
+  const unlockRules = {};
+
+  for (const a of assignments || []) {
+    const vehicleId = toStr(a?.vehicleId);
+    if (!vehicleId) continue;
+
+    if (toBool(a?.disabled)) {
+      disabledVehicles.push(vehicleId);
+      continue;
+    }
+
+    unlockRules[vehicleId] = {
+      unlockIsFree: toBool(a?.unlockIsFree ?? a?.unlockFree ?? a?.unlock_no_achievement),
+      unlockAchievementId: Number(a?.unlockAchievementId || 0) || 0,
+    };
+
+    const rolesObj = a?.roles || {};
+    for (const [roleIdRaw, roleMeta] of Object.entries(rolesObj)) {
+      const roleId = toStr(roleIdRaw).toLowerCase();
+      const r = roleById[roleId];
+      if (!r) continue;
+
+      const isDefault = toBool(roleMeta?.isDefault ?? roleMeta);
+      for (const ct of COMPETITIONS) {
+        if (toBool(r?.[ct])) {
+          pools[ct].allVehicles.push(vehicleId);
+          if (isDefault) pools[ct].defaultVehicles.push(vehicleId);
+        }
+      }
+    }
+  }
+
+  const normalizedPools = normalizePools({ pools });
+
+  return {
+    version: 2,
+    generatedAt: new Date().toISOString(),
+    pools: normalizedPools,
+    disabledVehicles: Array.from(new Set(disabledVehicles)).sort(),
+    unlockRules,
+    caches: pickDefaultCache(normalizedPools),
+    meta: {
+      computedFrom: "kv",
+      counts: {
+        roles: roles?.length || 0,
+        assignments: assignments?.length || 0,
+      },
+    },
   };
 }
 
 export async function onRequest(context) {
   const { request, env } = context;
 
-  // CORS preflight
-  const opt = handleOptions(request);
-  if (opt) return opt;
+  if (request.method === "OPTIONS") return handleOptions(request);
 
   if (request.method !== "GET") {
-    return jsonResponse(request, { ok: false, error: "Method not allowed" }, 405);
+    return jsonResponse(request, { error: "method_not_allowed" }, 405);
   }
 
-  // Cache: this endpoint is hit frequently (garage + Unity). Once we have
-  // VF_KV_VEHICLE_POOLS it is already O(1) (single KV read). We still keep a very
-  // short edge cache to reduce KV reads under load.
-  //
-  // IMPORTANT: CORS varies by Origin. Include Origin in the cache key so we don't
-  // serve the wrong Access-Control-Allow-Origin header.
+  // 1) Prefer KV cache
   try {
-    const origin = request.headers.get("Origin") || "";
-    const cacheUrl = new URL(request.url);
-    if (origin) cacheUrl.searchParams.set("__origin", origin);
-    const cacheKey = new Request(cacheUrl.toString(), { method: "GET" });
-
-    const cached = await caches.default.match(cacheKey);
-    if (cached) return cached;
-
-    // Compute response below and store it in cache before returning.
-    const computed = await buildPoolsResponse(request, env);
-    // Short TTL keeps admin edits reasonably fresh while still preventing stampedes.
-    computed.headers.set("Cache-Control", "public, max-age=5");
-    await caches.default.put(cacheKey, computed.clone());
-    return computed;
-  } catch {
-    // If cache API fails for any reason, fall back to normal computation.
-  }
-
-  return buildPoolsResponse(request, env);
-}
-
-async function buildPoolsResponse(request, env) {
-  // Preferred path: a single O(1) KV read.
-  // The admin site maintains this record any time roles/assignments change.
-  if (env.VF_KV_VEHICLE_POOLS) {
-    try {
-      const rec = await env.VF_KV_VEHICLE_POOLS.get("current", { type: "json" });
-      if (rec && typeof rec === "object" && rec.pools && typeof rec.pools === "object") {
-        const normalizedPools = Object.fromEntries(
-          COMPETITIONS.map((c) => {
-            const p = rec.pools?.[c] || null;
-            const eligibleIds = Array.isArray(p?.eligibleIds) ? p.eligibleIds : [];
-            const defaultIds = Array.isArray(p?.defaultIds) ? p.defaultIds : [];
-            return [c, { eligibleIds, defaultIds }];
-          }),
-        );
-
+    if (env?.VF_KV_VEHICLE_POOLS) {
+      const cached = await env.VF_KV_VEHICLE_POOLS.get("current", { type: "json" });
+      if (cached && typeof cached === "object") {
         return jsonResponse(request, {
           ok: true,
-          source: "precomputed",
-          version: rec.version ?? 1,
-          generatedAt: rec.generatedAt || new Date().toISOString(),
-          updatedBy: rec.updatedBy || "",
-          reason: rec.reason || "",
-          counts: rec.counts || undefined,
-          ...(Array.isArray(rec.warnings) && rec.warnings.length ? { warnings: rec.warnings } : {}),
-          pools: normalizedPools,
-          disabledIds: Array.isArray(rec.disabledIds) ? rec.disabledIds : [],
-          unlockRules: rec.unlockRules && typeof rec.unlockRules === "object" ? rec.unlockRules : {},
+          ...cached,
+          meta: { ...(cached.meta || {}), source: "kv_cache" },
         });
       }
-    } catch {
-      // Fall through to computed path.
     }
+  } catch {
+    // ignore
   }
 
-  // Fallback path: compute from roles + assignments. This is slower and should
-  // only happen if the pools KV is not bound yet or has not been seeded.
-  if (!env.VF_KV_VEHICLE_ROLES || !env.VF_KV_VEHICLE_ASSIGNMENTS) {
-    return jsonResponse(request, {
-      ok: true,
-      source: "empty",
-      warning: "KV bindings missing: VF_KV_VEHICLE_POOLS (preferred) and/or VF_KV_VEHICLE_ROLES / VF_KV_VEHICLE_ASSIGNMENTS",
-      generatedAt: new Date().toISOString(),
-      pools: Object.fromEntries(COMPETITIONS.map((c) => [c, { eligibleIds: [], defaultIds: [] }])),
-      disabledIds: [],
-      unlockRules: {},
-    });
-  }
-
-  const [rolesRaw, assignsRaw] = await Promise.all([
-    listAllJsonRecords(env.VF_KV_VEHICLE_ROLES),
-    listAllJsonRecords(env.VF_KV_VEHICLE_ASSIGNMENTS),
-  ]);
-
-  const warnings = [];
-  if (rolesRaw?._meta?.truncated) {
-    warnings.push(`Vehicle roles KV had ${rolesRaw._meta.totalKeys} keys; only processed ${rolesRaw._meta.usedKeys}. Check KV binding.`);
-  }
-  if (assignsRaw?._meta?.truncated) {
-    warnings.push(`Vehicle assignments KV had ${assignsRaw._meta.totalKeys} keys; only processed ${assignsRaw._meta.usedKeys}. Check KV binding.`);
-  }
-
-  const roleById = new Map();
-  for (const r of rolesRaw) {
-    const nr = normalizeRole(r);
-    if (nr) roleById.set(nr.roleId, nr);
-  }
-
-  const pools = {};
-  const defaults = {};
-  for (const c of COMPETITIONS) {
-    pools[c] = new Set();
-    defaults[c] = new Set();
-  }
-
-  const disabledIds = new Set();
-  const unlockRules = {};
-
-  for (const a of assignsRaw) {
-    const na = normalizeAssignment(a);
-    if (!na) continue;
-
-    // Unlock rules: include if explicitly configured.
-    const achId = Number(na.unlockAchievementId || 0) || 0;
-    const isFree = Boolean(na.unlockIsFree);
-    if (isFree || achId > 0) {
-      unlockRules[na.vehicleId] = { free: isFree, achievementId: achId };
-    }
-
-    if (na.disabled) {
-      disabledIds.add(na.vehicleId);
-      continue;
-    }
-
-    for (const [rid, v] of Object.entries(na.roles || {})) {
-      const role = roleById.get(rid);
-      if (!role) continue;
-      for (const c of COMPETITIONS) {
-        if (!role[c]) continue;
-        pools[c].add(na.vehicleId);
-        if (v?.isDefault) defaults[c].add(na.vehicleId);
+  // 2) Compute from D1
+  try {
+    const computed = await computePoolsFromD1(env);
+    if (computed) {
+      // best-effort write-through cache (optional)
+      try {
+        if (env?.VF_KV_VEHICLE_POOLS) {
+          await env.VF_KV_VEHICLE_POOLS.put("current", JSON.stringify(computed));
+        }
+      } catch {
+        // ignore
       }
+
+      return jsonResponse(request, { ok: true, ...computed, meta: { ...(computed.meta || {}), source: "d1" } });
     }
+  } catch {
+    // ignore
   }
 
-  const resp = {
-    ok: true,
-    source: "computed",
-    ...(warnings.length ? { warnings } : {}),
-    generatedAt: new Date().toISOString(),
-    pools: Object.fromEntries(
-      COMPETITIONS.map((c) => [c, { eligibleIds: Array.from(pools[c]).sort(), defaultIds: Array.from(defaults[c]).sort() }]),
-    ),
-    disabledIds: Array.from(disabledIds).sort(),
-    unlockRules,
-  };
-
-  // Best-effort: store computed result so future reads are O(1) even if the admin
-  // site hasn't rebuilt pools yet.
-  if (env.VF_KV_VEHICLE_POOLS) {
-    try {
-      const record = {
-        version: 2,
-        generatedAt: resp.generatedAt,
-        pools: resp.pools,
-        disabledIds: resp.disabledIds,
-        unlockRules: resp.unlockRules,
-        ...(warnings.length ? { warnings } : {}),
-        updatedBy: "",
-        reason: "computed_fallback",
-      };
-      await env.VF_KV_VEHICLE_POOLS.put("current", JSON.stringify(record));
-    } catch {
-      // ignore
-    }
+  // 3) Legacy KV compute
+  const legacy = await computePoolsFromLegacyKv(env);
+  if (legacy) {
+    return jsonResponse(request, { ok: true, ...legacy, meta: { ...(legacy.meta || {}), source: "kv" } });
   }
 
-  return jsonResponse(request, resp);
+  // Nothing configured
+  return jsonResponse(
+    request,
+    {
+      ok: true,
+      version: 2,
+      generatedAt: new Date().toISOString(),
+      pools: buildEmptyPools(),
+      disabledVehicles: [],
+      unlockRules: {},
+      caches: pickDefaultCache(buildEmptyPools()),
+      meta: { source: "empty", note: "No config bindings present" },
+    },
+    200,
+  );
 }

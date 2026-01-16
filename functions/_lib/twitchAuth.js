@@ -1,6 +1,7 @@
 // functions/_lib/twitchAuth.js
 import { jsonResponse } from "./response.js";
 import { verifyJwtHs256 } from "./vfJwt.js";
+import { isoFromMs, msFromIso, nowMs, tableExists, toStr } from "./dbUtil.js";
 
 /**
  * Extracts a Twitch user access token.
@@ -26,6 +27,43 @@ function nowUnix() {
 function normalizeArrayStrings(v) {
   if (!Array.isArray(v)) return [];
   return v.map((x) => String(x || "").trim()).filter(Boolean);
+}
+
+async function upsertUserToD1BestEffort(env, record) {
+  try {
+    const db = env?.VF_D1_STATS;
+    if (!db) return false;
+    const ok = await tableExists(db, "vf_users");
+    if (!ok) return false;
+
+    const userId = toStr(record?.userId);
+    const login = toStr(record?.login).toLowerCase();
+    if (!userId || !login) return false;
+
+    const hu = record?.helixUser || {};
+    const displayName = toStr(hu?.display_name || record?.displayName);
+    const profileImageUrl = toStr(hu?.profile_image_url || record?.profileImageUrl);
+    const lastSeenAtMs = msFromIso(record?.lastSeenAt) ?? nowMs();
+
+    const ms = nowMs();
+    await db
+      .prepare(
+        `INSERT INTO vf_users (user_id, login, display_name, profile_image_url, last_seen_at_ms, created_at_ms, updated_at_ms)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(user_id) DO UPDATE SET
+           login=excluded.login,
+           display_name=excluded.display_name,
+           profile_image_url=excluded.profile_image_url,
+           last_seen_at_ms=excluded.last_seen_at_ms,
+           updated_at_ms=excluded.updated_at_ms`,
+      )
+      .bind(userId, login, displayName, profileImageUrl, lastSeenAtMs, ms, ms)
+      .run();
+
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function tryAuthFromVfJwt(context, token) {
@@ -159,13 +197,16 @@ export async function requireTwitchUser(context) {
   // If the token is already a VF session, we can authenticate without calling Twitch.
   const vf = await tryAuthFromVfJwt(context, token);
   if (vf?.ok) {
-    // Best-effort KV write for lastSeen/profile
-    try {
-      if (env?.VF_KV_USERS) {
-        await env.VF_KV_USERS.put(vf.user.userId, JSON.stringify(vf.user));
+    // Best-effort: persist to D1 (preferred) or KV (legacy)
+    const wrote = await upsertUserToD1BestEffort(env, vf.user);
+    if (!wrote) {
+      try {
+        if (env?.VF_KV_USERS) {
+          await env.VF_KV_USERS.put(vf.user.userId, JSON.stringify(vf.user));
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
     }
     return vf;
   }
@@ -190,13 +231,16 @@ export async function requireTwitchUser(context) {
     helixUser,
   };
 
-  // Best-effort KV write (don't fail the whole request if KV isn't bound yet).
-  try {
-    if (env?.VF_KV_USERS) {
-      await env.VF_KV_USERS.put(v.user_id, JSON.stringify(record));
+  // Best-effort: persist to D1 (preferred) or KV (legacy)
+  const wrote = await upsertUserToD1BestEffort(env, record);
+  if (!wrote) {
+    try {
+      if (env?.VF_KV_USERS) {
+        await env.VF_KV_USERS.put(v.user_id, JSON.stringify(record));
+      }
+    } catch {
+      // ignore
     }
-  } catch {
-    // ignore
   }
 
   return {
@@ -314,6 +358,35 @@ async function getRoleDef(env, roleId) {
 }
 
 async function isVipByRoleFlags(env, userId) {
+  // Prefer D1 (v0.6+)
+  try {
+    const db = env?.VF_D1_STATS;
+    if (db && (await tableExists(db, "vf_user_roles")) && (await tableExists(db, "vf_roles"))) {
+      const rs = await db
+        .prepare(
+          `SELECT r.role_id, r.is_admin, r.is_mod, r.is_vip
+           FROM vf_user_roles ur
+           JOIN vf_roles r ON r.role_id = ur.role_id
+           WHERE ur.user_id = ?`,
+        )
+        .bind(String(userId || ""))
+        .all();
+
+      const rows = Array.isArray(rs?.results) ? rs.results : [];
+      const roleIds = uniqueLower(rows.map((r) => toStr(r?.role_id)));
+      if (!roleIds.length) return { ok: true, allowed: false, roleIds: [] };
+
+      if (roleIds.includes("admin")) {
+        return { ok: true, allowed: true, roleIds, reason: "vip_role_admin" };
+      }
+
+      const allowed = rows.some((r) => Number(r?.is_admin) === 1 || Number(r?.is_mod) === 1 || Number(r?.is_vip) === 1);
+      return { ok: true, allowed, roleIds, reason: allowed ? "vip_role" : undefined };
+    }
+  } catch {
+    // fall back to KV below
+  }
+
   const roleIds = await getUserRoleIds(env, userId);
   if (!roleIds.length) return { ok: true, allowed: false, roleIds: [] };
 
@@ -459,13 +532,16 @@ export async function requireWebsiteUser(context, { broadcasterLogin } = {}) {
 
   const vf = await tryAuthFromVfJwt(context, rawToken);
   if (vf?.ok) {
-    // Optional best-effort KV write (keeps the USERS KV warm for admin tools)
-    try {
-      if (context?.env?.VF_KV_USERS) {
-        await context.env.VF_KV_USERS.put(vf.user.userId, JSON.stringify(vf.user));
+    // Best-effort: persist to D1 (preferred) or KV (legacy)
+    const wrote = await upsertUserToD1BestEffort(context.env, vf.user);
+    if (!wrote) {
+      try {
+        if (context?.env?.VF_KV_USERS) {
+          await context.env.VF_KV_USERS.put(vf.user.userId, JSON.stringify(vf.user));
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
     }
     return vf;
   }

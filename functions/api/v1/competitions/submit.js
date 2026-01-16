@@ -3,13 +3,14 @@
 //
 // Storage:
 // - Competitions + results are persisted to D1 (env.VF_D1_STATS).
-// - Seasons are resolved from KV (env.VF_KV_SEASONS) and stored alongside the competition.
+// - Seasons are resolved from D1 (v0.6+) or KV (legacy) and stored alongside the competition.
 
 import { handleOptions } from "../../../_lib/cors.js";
 import { jsonResponse } from "../../../_lib/response.js";
 import { requireWebsiteUser } from "../../../_lib/twitchAuth.js";
 import { listAllJsonRecords } from "../../../_lib/kv.js";
 import { awardAchievementsForViewers } from "../../../_lib/achievements.js";
+import { isoFromMs, tableExists, toStr as toStrUtil } from "../../../_lib/dbUtil.js";
 
 function nowMs() {
   return Date.now();
@@ -69,6 +70,31 @@ async function loadSeasonsCached(env) {
     return _seasonCache.seasons;
   }
 
+  // Prefer D1 (v0.6+)
+  try {
+    const db = env?.VF_D1_STATS;
+    if (db && (await tableExists(db, "vf_seasons"))) {
+      const rs = await db
+        .prepare("SELECT season_id, start_at_ms, end_at_ms, name FROM vf_seasons")
+        .all();
+
+      const seasons = (Array.isArray(rs?.results) ? rs.results : [])
+        .map((r) => ({
+          seasonId: toStr(r?.season_id).toLowerCase(),
+          startAt: isoFromMs(r?.start_at_ms),
+          endAt: isoFromMs(r?.end_at_ms),
+          name: toStr(r?.name),
+        }))
+        .filter((s) => s.seasonId && s.startAt && s.endAt);
+
+      _seasonCache = { fetchedAtMs: now, seasons };
+      return seasons;
+    }
+  } catch {
+    // fall back to KV
+  }
+
+  // Legacy KV fallback
   if (!env?.VF_KV_SEASONS) {
     _seasonCache = { fetchedAtMs: now, seasons: [] };
     return [];
