@@ -10,7 +10,30 @@ import { jsonResponse } from "../../../_lib/response.js";
 import { requireWebsiteUser } from "../../../_lib/twitchAuth.js";
 import { listAllJsonRecords } from "../../../_lib/kv.js";
 import { awardAchievementsForViewers } from "../../../_lib/achievements.js";
-import { isoFromMs, tableExists, toStr as toStrUtil } from "../../../_lib/dbUtil.js";
+import { isoFromMs, tableExists, toBool, toBoolInt } from "../../../_lib/dbUtil.js";
+
+// Cached check: does D1 have competition_results.is_bot?
+let __hasIsBotCol = null;
+let __hasIsBotColCheckedAtMs = 0;
+
+async function hasIsBotColumn(db) {
+  if (!db) return false;
+  const now = Date.now();
+  if (__hasIsBotCol !== null && now - __hasIsBotColCheckedAtMs < 60_000) return __hasIsBotCol;
+
+  try {
+    const rs = await db.prepare("PRAGMA table_info('competition_results')").all();
+    const cols = Array.isArray(rs?.results) ? rs.results : [];
+    const has = cols.some((c) => String(c?.name || "").toLowerCase() === "is_bot");
+    __hasIsBotCol = has;
+    __hasIsBotColCheckedAtMs = now;
+    return has;
+  } catch {
+    __hasIsBotCol = false;
+    __hasIsBotColCheckedAtMs = now;
+    return false;
+  }
+}
 
 function nowMs() {
   return Date.now();
@@ -326,37 +349,76 @@ export async function onRequest(context) {
     );
   }
 
+  // Detect whether the DB has the `competition_results.is_bot` column.
+  // (This lets the API stay compatible if the code is deployed slightly before the migration is run.)
+  const hasBotFlag = await hasIsBotColumn(env.VF_D1_STATS);
+
   // 2) Upsert results
-  const upsertResultSql = `
-    INSERT INTO competition_results (
-      competition_id,
-      viewer_user_id,
-      viewer_login,
-      viewer_display_name,
-      viewer_profile_image_url,
-      finish_position,
-      status,
-      finish_time_ms,
-      vehicle_id,
-      distance_m,
-      progress01,
-      created_at_ms,
-      updated_at_ms
-    ) VALUES (
-      ?,?,?,?,?,?,?,?,?,?,?,?,?
-    )
-    ON CONFLICT(competition_id, viewer_user_id) DO UPDATE SET
-      viewer_login=excluded.viewer_login,
-      viewer_display_name=excluded.viewer_display_name,
-      viewer_profile_image_url=excluded.viewer_profile_image_url,
-      finish_position=excluded.finish_position,
-      status=excluded.status,
-      finish_time_ms=excluded.finish_time_ms,
-      vehicle_id=excluded.vehicle_id,
-      distance_m=excluded.distance_m,
-      progress01=excluded.progress01,
-      updated_at_ms=excluded.updated_at_ms
-  `;
+  // NOTE: we conditionally include the `is_bot` field to avoid breaking if
+  // the worker is deployed before the DB migration is applied.
+  const upsertResultSql = hasBotFlag
+    ? `
+      INSERT INTO competition_results (
+        competition_id,
+        viewer_user_id,
+        viewer_login,
+        viewer_display_name,
+        viewer_profile_image_url,
+        is_bot,
+        finish_position,
+        status,
+        finish_time_ms,
+        vehicle_id,
+        distance_m,
+        progress01,
+        created_at_ms,
+        updated_at_ms
+      ) VALUES (
+        ?,?,?,?,?,?,?,?,?,?,?,?,?,?
+      )
+      ON CONFLICT(competition_id, viewer_user_id) DO UPDATE SET
+        viewer_login=excluded.viewer_login,
+        viewer_display_name=excluded.viewer_display_name,
+        viewer_profile_image_url=excluded.viewer_profile_image_url,
+        is_bot=excluded.is_bot,
+        finish_position=excluded.finish_position,
+        status=excluded.status,
+        finish_time_ms=excluded.finish_time_ms,
+        vehicle_id=excluded.vehicle_id,
+        distance_m=excluded.distance_m,
+        progress01=excluded.progress01,
+        updated_at_ms=excluded.updated_at_ms
+    `
+    : `
+      INSERT INTO competition_results (
+        competition_id,
+        viewer_user_id,
+        viewer_login,
+        viewer_display_name,
+        viewer_profile_image_url,
+        finish_position,
+        status,
+        finish_time_ms,
+        vehicle_id,
+        distance_m,
+        progress01,
+        created_at_ms,
+        updated_at_ms
+      ) VALUES (
+        ?,?,?,?,?,?,?,?,?,?,?,?,?
+      )
+      ON CONFLICT(competition_id, viewer_user_id) DO UPDATE SET
+        viewer_login=excluded.viewer_login,
+        viewer_display_name=excluded.viewer_display_name,
+        viewer_profile_image_url=excluded.viewer_profile_image_url,
+        finish_position=excluded.finish_position,
+        status=excluded.status,
+        finish_time_ms=excluded.finish_time_ms,
+        vehicle_id=excluded.vehicle_id,
+        distance_m=excluded.distance_m,
+        progress01=excluded.progress01,
+        updated_at_ms=excluded.updated_at_ms
+    `;
 
   const statements = [];
   const viewerIds = new Set();
@@ -367,9 +429,22 @@ export async function onRequest(context) {
     const viewerUserId = toStr(r?.userId) || toStr(r?.login);
     if (!viewerUserId) continue;
 
-    viewerIds.add(viewerUserId);
-
     const viewerLogin = toLower(r?.login);
+
+    // --- Bot detection -----------------------------------------------------
+    // Prefer an explicit boolean from the client.
+    // Fallbacks exist for older client builds so you can deploy server+DB first.
+    let isBot = toBool(r?.isBot);
+    if (!isBot) {
+      const uid = viewerUserId;
+      // New convention (recommended): "bot:0001" etc.
+      if (/^bot[:_]/i.test(uid)) isBot = true;
+      // Legacy convention: empty login + "Racer 1" display/user id.
+      if (!viewerLogin && /^racer\s+\d+$/i.test(uid)) isBot = true;
+    }
+
+    // Only real viewers should earn achievements.
+    if (!isBot) viewerIds.add(viewerUserId);
     const displayName = toStr(r?.displayName);
     const profileImageUrl = toStr(r?.profileImageUrl);
 
@@ -386,22 +461,41 @@ export async function onRequest(context) {
     const distanceM = toFloat(r?.distanceM, { min: 0, max: 1_000_000, fallback: 0 });
     const progress01 = toFloat(r?.progress01, { min: 0, max: 1, fallback: 0 });
 
+    const isBotInt = toBoolInt(isBot);
+
     statements.push(
-      env.VF_D1_STATS.prepare(upsertResultSql).bind(
-        competitionId,
-        viewerUserId,
-        viewerLogin,
-        displayName,
-        profileImageUrl,
-        finishPosition,
-        status,
-        finishTimeMs,
-        vehicleId,
-        distanceM,
-        progress01,
-        createdAtMs,
-        updatedAtMs,
-      ),
+      hasBotFlag
+        ? env.VF_D1_STATS.prepare(upsertResultSql).bind(
+          competitionId,
+          viewerUserId,
+          viewerLogin,
+          displayName,
+          profileImageUrl,
+          isBotInt,
+          finishPosition,
+          status,
+          finishTimeMs,
+          vehicleId,
+          distanceM,
+          progress01,
+          createdAtMs,
+          updatedAtMs,
+        )
+        : env.VF_D1_STATS.prepare(upsertResultSql).bind(
+          competitionId,
+          viewerUserId,
+          viewerLogin,
+          displayName,
+          profileImageUrl,
+          finishPosition,
+          status,
+          finishTimeMs,
+          vehicleId,
+          distanceM,
+          progress01,
+          createdAtMs,
+          updatedAtMs,
+        ),
     );
   }
 

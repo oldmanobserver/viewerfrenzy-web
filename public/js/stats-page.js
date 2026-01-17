@@ -118,6 +118,8 @@ function buildQuery(state) {
     streamerSearch: state.streamerSearch || "",
     viewerSearch: state.viewerSearch || "",
     mapSearch: state.mapSearch || "",
+    // Hide bots by default. Only send the param when enabled, so older servers ignore it.
+    showBots: state.showBots ? "1" : "",
     sortBy: state.sortBy || "wins",
     sortDir: state.sortDir || "desc",
     page: state.page,
@@ -414,6 +416,7 @@ async function init() {
     streamerSearch: "",
     viewerSearch: "",
     mapSearch: "",
+    showBots: false,
     sortBy: "wins",
     sortDir: "desc",
     page: 1,
@@ -495,6 +498,14 @@ async function init() {
             <option value="100">100</option>
           </select>
         </label>
+
+        <div class="vf-field">
+          <span class="vf-fieldLabel">Bots</span>
+          <label class="vf-toggle" style="width: 160px; justify-content: space-between;">
+            <span>Show bots</span>
+            <input id="vf-showBots" type="checkbox" />
+          </label>
+        </div>
       </div>
     </div>
 
@@ -548,6 +559,7 @@ async function init() {
   const streamerSearchEl = document.getElementById("vf-streamerSearch");
   const mapSearchEl = document.getElementById("vf-mapSearch");
   const pageSizeEl = document.getElementById("vf-pageSize");
+  const showBotsEl = document.getElementById("vf-showBots");
 
   const summaryEl = document.getElementById("vf-summary");
   const theadEl = document.getElementById("vf-thead");
@@ -555,6 +567,8 @@ async function init() {
   const tableEl = document.getElementById("vf-table");
   const pagerTop = document.getElementById("vf-pagerTop");
   const pagerBottom = document.getElementById("vf-pagerBottom");
+
+  if (showBotsEl) showBotsEl.checked = !!state.showBots;
 
   // Columns modal elements
   const colsBtn = document.getElementById("vf-colsBtn");
@@ -880,6 +894,11 @@ async function init() {
 
   mapSearchEl?.addEventListener("input", () => {
     state.mapSearch = mapSearchEl.value || "";
+    scheduleReload(true);
+  });
+
+  showBotsEl?.addEventListener("change", () => {
+    state.showBots = !!showBotsEl.checked;
     scheduleReload(true);
   });
 

@@ -9,6 +9,30 @@
 // - Edge caching (short TTL) to keep it snappy and reduce D1 load
 
 import { handleOptions, buildCorsHeaders } from "../../../_lib/cors.js";
+import { toBool } from "../../../_lib/dbUtil.js";
+
+// Cached check: does D1 have competition_results.is_bot?
+let __hasIsBotCol = null;
+let __hasIsBotColCheckedAtMs = 0;
+
+async function hasIsBotColumn(db) {
+  if (!db) return false;
+  const now = Date.now();
+  if (__hasIsBotCol !== null && now - __hasIsBotColCheckedAtMs < 60_000) return __hasIsBotCol;
+
+  try {
+    const rs = await db.prepare("PRAGMA table_info('competition_results')").all();
+    const cols = Array.isArray(rs?.results) ? rs.results : [];
+    const has = cols.some((c) => String(c?.name || "").toLowerCase() === "is_bot");
+    __hasIsBotCol = has;
+    __hasIsBotColCheckedAtMs = now;
+    return has;
+  } catch {
+    __hasIsBotCol = false;
+    __hasIsBotColCheckedAtMs = now;
+    return false;
+  }
+}
 
 const CACHE_TTL_SECONDS = 30;
 
@@ -46,7 +70,7 @@ function normSearch(v) {
   return s.slice(0, 80);
 }
 
-function buildWhereAndParams(url) {
+function buildWhereAndParams(url, { includeBots = false, hasBotFlag = false } = {}) {
   const where = [];
   const params = [];
 
@@ -98,6 +122,12 @@ function buildWhereAndParams(url) {
       "(LOWER(COALESCE(c.map_id,'')) LIKE ? OR LOWER(COALESCE(c.map_name,'')) LIKE ?)",
     );
     params.push(`%${mapSearch}%`, `%${mapSearch}%`);
+  }
+
+  // Bots are excluded by default.
+  // If the DB hasn't been upgraded yet (no is_bot column), we simply can't filter.
+  if (!includeBots && hasBotFlag) {
+    where.push("r.is_bot = 0");
   }
 
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
@@ -187,7 +217,9 @@ export async function onRequest(context) {
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
-  const { whereSql, params } = buildWhereAndParams(url);
+  const includeBots = toBool(url.searchParams.get("showBots"));
+  const hasBotFlag = await hasIsBotColumn(env.VF_D1_STATS);
+  const { whereSql, params } = buildWhereAndParams(url, { includeBots, hasBotFlag });
 
   const filteredCte = `
     WITH filtered AS (
