@@ -1,8 +1,8 @@
 // functions/api/v1/vehicle-pools.js
 //
 // Public endpoint that returns per-competition vehicle pools:
-// - allVehicles: all eligible vehicles for that competition type
-// - defaultVehicles: "competition default" vehicles (used when a viewer chooses Random)
+// - eligibleIds: all eligible vehicles for that competition type
+// - defaultIds: "competition default" vehicles (used when a viewer chooses Random)
 //
 // Caching strategy:
 // - Prefer precomputed cache in KV (VF_KV_VEHICLE_POOLS)
@@ -19,7 +19,7 @@ const COMPETITIONS = ["ground", "resort", "space", "trackfield", "water", "winte
 function buildEmptyPools() {
   const pools = {};
   for (const c of COMPETITIONS) {
-    pools[c] = { allVehicles: [], defaultVehicles: [] };
+    pools[c] = { eligibleIds: [], defaultIds: [] };
   }
   return pools;
 }
@@ -29,14 +29,23 @@ function normalizePools(poolRecord) {
   const inPools = poolRecord?.pools || {};
   for (const c of COMPETITIONS) {
     const p = inPools[c] || {};
-    const allVehicles = Array.isArray(p.allVehicles) ? p.allVehicles : [];
-    const defaultVehicles = Array.isArray(p.defaultVehicles) ? p.defaultVehicles : [];
+    // Support both the current naming (eligibleIds/defaultIds) and legacy naming
+    // (allVehicles/defaultVehicles) for compatibility.
+    const eligible = Array.isArray(p.eligibleIds)
+      ? p.eligibleIds
+      : Array.isArray(p.allVehicles)
+        ? p.allVehicles
+        : [];
+
+    const defaults = Array.isArray(p.defaultIds)
+      ? p.defaultIds
+      : Array.isArray(p.defaultVehicles)
+        ? p.defaultVehicles
+        : [];
 
     // de-dup and sanitize
-    pools[c].allVehicles = Array.from(new Set(allVehicles.map((x) => String(x || "").trim()).filter(Boolean))).sort();
-    pools[c].defaultVehicles = Array.from(
-      new Set(defaultVehicles.map((x) => String(x || "").trim()).filter(Boolean)),
-    ).sort();
+    pools[c].eligibleIds = Array.from(new Set(eligible.map((x) => String(x || "").trim()).filter(Boolean))).sort();
+    pools[c].defaultIds = Array.from(new Set(defaults.map((x) => String(x || "").trim()).filter(Boolean))).sort();
   }
   return pools;
 }
@@ -44,8 +53,8 @@ function normalizePools(poolRecord) {
 function pickDefaultCache(pools) {
   const caches = { default: {} };
   for (const c of COMPETITIONS) {
-    const d = pools[c]?.defaultVehicles || [];
-    const a = pools[c]?.allVehicles || [];
+    const d = pools[c]?.defaultIds || [];
+    const a = pools[c]?.eligibleIds || [];
     caches.default[c] = d[0] || a[0] || "";
   }
   return caches;
@@ -126,9 +135,9 @@ async function computePoolsFromD1(env) {
 
       for (const ct of comps) {
         if (!COMPETITIONS.includes(ct)) continue;
-        pools[ct].allVehicles.push(vehicleId);
+        pools[ct].eligibleIds.push(vehicleId);
         if (link.isDefault) {
-          pools[ct].defaultVehicles.push(vehicleId);
+          pools[ct].defaultIds.push(vehicleId);
         }
       }
     }
@@ -141,6 +150,9 @@ async function computePoolsFromD1(env) {
     version: 2,
     generatedAt: new Date().toISOString(),
     pools: normalizedPools,
+    // Primary name used by the game client
+    disabledIds: Array.from(new Set(disabledVehicles)).sort(),
+    // Legacy name retained for backwards compatibility
     disabledVehicles: Array.from(new Set(disabledVehicles)).sort(),
     unlockRules,
     caches: pickDefaultCache(normalizedPools),
@@ -194,8 +206,8 @@ async function computePoolsFromLegacyKv(env) {
       const isDefault = toBool(roleMeta?.isDefault ?? roleMeta);
       for (const ct of COMPETITIONS) {
         if (toBool(r?.[ct])) {
-          pools[ct].allVehicles.push(vehicleId);
-          if (isDefault) pools[ct].defaultVehicles.push(vehicleId);
+          pools[ct].eligibleIds.push(vehicleId);
+          if (isDefault) pools[ct].defaultIds.push(vehicleId);
         }
       }
     }
@@ -207,6 +219,9 @@ async function computePoolsFromLegacyKv(env) {
     version: 2,
     generatedAt: new Date().toISOString(),
     pools: normalizedPools,
+    // Primary name used by the game client
+    disabledIds: Array.from(new Set(disabledVehicles)).sort(),
+    // Legacy name retained for backwards compatibility
     disabledVehicles: Array.from(new Set(disabledVehicles)).sort(),
     unlockRules,
     caches: pickDefaultCache(normalizedPools),
@@ -278,6 +293,7 @@ export async function onRequest(context) {
       version: 2,
       generatedAt: new Date().toISOString(),
       pools: buildEmptyPools(),
+      disabledIds: [],
       disabledVehicles: [],
       unlockRules: {},
       caches: pickDefaultCache(buildEmptyPools()),
