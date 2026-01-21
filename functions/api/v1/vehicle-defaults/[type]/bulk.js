@@ -1,12 +1,4 @@
 // functions/api/v1/vehicle-defaults/[type]/bulk.js
-//
-// Authenticated bulk lookup of saved defaults for many users.
-// (Used by the Unity game to preload defaults for viewers in the current lobby.)
-//
-// New storage (v0.6+): D1
-// - vf_viewer_default_vehicles
-//
-// Legacy fallback (pre-v0.6): KV per competition type
 
 import { handleOptions } from "../../../../_lib/cors.js";
 import { jsonResponse } from "../../../../_lib/response.js";
@@ -30,9 +22,25 @@ function getKvForType(env, type) {
 
 function normalizeUserIds(userIds) {
   if (!Array.isArray(userIds)) return [];
-  return Array.from(
-    new Set(userIds.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 200)),
-  );
+  return Array.from(new Set(userIds.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 200)));
+}
+
+function makeRecord(userId, valueObjOrNull) {
+  if (valueObjOrNull && typeof valueObjOrNull === "object") {
+    return {
+      userId: String(userId || "").trim(),
+      found: true,
+      vehicleId: toStr(valueObjOrNull.vehicleId),
+      updatedAt: toStr(valueObjOrNull.updatedAt),
+    };
+  }
+
+  return {
+    userId: String(userId || "").trim(),
+    found: false,
+    vehicleId: "",
+    updatedAt: "",
+  };
 }
 
 export async function onRequest(context) {
@@ -60,8 +68,17 @@ export async function onRequest(context) {
   }
 
   const userIds = normalizeUserIds(body?.userIds);
+
+  // IMPORTANT: Unity expects "records" to exist even when empty.
   if (userIds.length === 0) {
-    return jsonResponse(request, { ok: true, vehicleType: type, values: {}, meta: { count: 0 } });
+    return jsonResponse(request, {
+      ok: true,
+      vehicleType: type,
+      requestedBy: toStr(auth?.validated?.user_id),
+      records: [],
+      values: {},
+      meta: { count: 0 },
+    });
   }
 
   // Prefer D1
@@ -78,23 +95,29 @@ export async function onRequest(context) {
         .bind(type, ...userIds)
         .all();
 
-      const out = {};
-      for (const uid of userIds) out[uid] = null;
+      // Preserve your old shape (values map)
+      const values = {};
+      for (const uid of userIds) values[uid] = null;
 
       for (const r of Array.isArray(rs?.results) ? rs.results : []) {
         const uid = toStr(r?.viewer_user_id);
         if (!uid) continue;
-        out[uid] = {
+        values[uid] = {
           vehicleId: toStr(r?.vehicle_id),
           updatedAt: isoFromMs(r?.updated_at_ms),
           clientUpdatedAtUnix: r?.client_updated_at_unix ?? null,
         };
       }
 
+      // NEW: Unity-friendly shape (records array)
+      const records = userIds.map((uid) => makeRecord(uid, values[uid]));
+
       return jsonResponse(request, {
         ok: true,
         vehicleType: type,
-        values: out,
+        requestedBy: toStr(auth?.validated?.user_id),
+        records,      // ✅ Unity reads this
+        values,       // (keep for compatibility)
         meta: { count: userIds.length, source: "d1" },
       });
     }
@@ -112,15 +135,19 @@ export async function onRequest(context) {
     );
   }
 
-  const out = {};
+  const values = {};
   for (const uid of userIds) {
-    out[uid] = (await kv.get(uid, { type: "json" })) || null;
+    values[uid] = (await kv.get(uid, { type: "json" })) || null;
   }
+
+  const records = userIds.map((uid) => makeRecord(uid, values[uid]));
 
   return jsonResponse(request, {
     ok: true,
     vehicleType: type,
-    values: out,
+    requestedBy: toStr(auth?.validated?.user_id),
+    records,     // ✅ Unity reads this
+    values,      // (keep for compatibility)
     meta: { count: userIds.length, source: "kv" },
   });
 }
