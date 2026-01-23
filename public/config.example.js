@@ -16,4 +16,15 @@ window.VF_CONFIG = {
   // You may add additional scopes separated by spaces. Example:
   //   "user:read:subscriptions user:read:email"
   twitchScopes: "user:read:subscriptions",
+
+
+  // Vehicle size conversion
+  //
+  // The vehicle catalog may include sizeX/sizeY/sizeZ (Unity units).
+  // This value defines how many Unity units equal 1 meter when displaying sizes on the website.
+  //
+  // Unity convention is 1 unit = 1 meter, so the default is 1.
+  // If your exported sizes are in a different scale, change this.
+  // Example: if 0.05 Unity units should display as 1 meter, set this to 0.05.
+  vehicleSizeUnitsPerMeter: 1,
 };

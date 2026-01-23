@@ -3,6 +3,14 @@ import { loadVehicleCatalog, isRandomPlaceholderId } from "./catalog.js";
 import * as api from "./api.js";
 import { toast } from "./ui.js";
 import { applyVehicleImage } from "./vehicle-images.js";
+import {
+  SIZE_FILTER_OPTIONS,
+  normalizeSizeFilterKey,
+  labelForSizeFilterKey,
+  matchesSizeFilter,
+  formatVehicleSizeShort,
+  formatVehicleSizeDetail,
+} from "./vehicle-size.js";
 
 const PREFERRED_ORDER = ["ground", "resort", "space", "water", "trackfield", "winter"];
 const UI_STATE_KEY = "vf_garage_ui_v1";
@@ -39,6 +47,7 @@ function saveUiState(state) {
       JSON.stringify({
         type: state.type,
         search: state.search,
+        sizeFilter: state.sizeFilter,
         cols: state.cols,
         rows: state.rows,
         showUnlocked: !!state.showUnlocked,
@@ -134,6 +143,7 @@ async function init() {
   const state = {
     type: uiSaved.type && availableTypes.includes(uiSaved.type) ? uiSaved.type : (availableTypes[0] || "ground"),
     search: typeof uiSaved.search === "string" ? uiSaved.search : "",
+    sizeFilter: normalizeSizeFilterKey(typeof uiSaved.sizeFilter === "string" ? uiSaved.sizeFilter : "all"),
     cols: clamp(Number(uiSaved.cols || 4), 1, 8),
     rows: clamp(Number(uiSaved.rows || 3), 1, 8),
 
@@ -302,6 +312,11 @@ async function init() {
           <span class="vf-fieldLabel">Locked achievements</span>
           <select id="vf-achLockedFilter" class="vf-input vf-inputSmall"></select>
         </label>
+
+        <label class="vf-field" style="min-width: 160px;">
+          <span class="vf-fieldLabel">Size</span>
+          <select id="vf-sizeFilter" class="vf-input vf-inputSmall"></select>
+        </label>
       </div>
 
       <div id="vf-typeChips" class="vf-chipRow" style="margin-top: 12px"></div>
@@ -329,6 +344,7 @@ async function init() {
           <div>
             <div class="vf-h2">Selected vehicle</div>
             <div class="vf-muted vf-small" id="vf-selectedLabel">Select a vehicle…</div>
+            <div class="vf-muted vf-small" id="vf-selectedSize" style="margin-top: 6px" hidden></div>
             <div class="vf-muted vf-small" id="vf-selectedUnlockInfo" style="margin-top: 6px" hidden></div>
           </div>
         </div>
@@ -353,6 +369,7 @@ async function init() {
   const elShowLocked = root.querySelector("#vf-showLocked");
   const elAchUnlockedFilter = root.querySelector("#vf-achUnlockedFilter");
   const elAchLockedFilter = root.querySelector("#vf-achLockedFilter");
+  const elSizeFilter = root.querySelector("#vf-sizeFilter");
   const elSearch = root.querySelector("#vf-search");
   const elCols = root.querySelector("#vf-cols");
   const elRows = root.querySelector("#vf-rows");
@@ -362,6 +379,7 @@ async function init() {
   const elGridSubtitle = root.querySelector("#vf-gridSubtitle");
   const elServerStatus = root.querySelector("#vf-serverStatus");
   const elSelectedLabel = root.querySelector("#vf-selectedLabel");
+  const elSelectedSize = root.querySelector("#vf-selectedSize");
   const elSelectedUnlockInfo = root.querySelector("#vf-selectedUnlockInfo");
   const elPreviewViewport = root.querySelector("#vf-previewViewport");
   const elPreviewImg = root.querySelector("#vf-previewImg");
@@ -404,6 +422,12 @@ async function init() {
     // Always hide disabled vehicles if we have the list.
     if (state.disabledSet && state.disabledSet.size > 0) {
       opts = opts.filter((o) => !state.disabledSet.has(String(o?.id || "")));
+    }
+
+    // Size bucket filter.
+    const sizeKey = normalizeSizeFilterKey(state.sizeFilter);
+    if (sizeKey !== "all") {
+      opts = opts.filter((o) => matchesSizeFilter(o, sizeKey));
     }
 
     // Achievement filter (two dropdowns): show only vehicles that are unlocked by the selected achievement.
@@ -676,6 +700,17 @@ async function init() {
     elAchLockedFilter.disabled = locked.length === 0 && !hasHiddenLocked;
   }
 
+
+  function renderSizeFilterSelect() {
+    if (!elSizeFilter) return;
+
+    elSizeFilter.innerHTML = SIZE_FILTER_OPTIONS
+      .map((o) => `<option value="${escapeHtml(o.key)}">${escapeHtml(o.label)}</option>`)
+      .join("");
+
+    elSizeFilter.value = normalizeSizeFilterKey(state.sizeFilter);
+  }
+
   function updateGridColumns() {
     // fixed column count (user controlled)
     elTiles.style.gridTemplateColumns = `repeat(${state.cols}, minmax(0, 1fr))`;
@@ -701,12 +736,16 @@ async function init() {
       ? `• ${achSource === "unlocked" ? "Unlocked achievement" : "Locked achievement"}: ${achLabel}`
       : "";
 
+    const sizeKey = normalizeSizeFilterKey(state.sizeFilter);
+    const sizeInfo = sizeKey !== "all" ? `• Size: ${labelForSizeFilterKey(sizeKey)}` : "";
+
     const info = [
       `Showing ${total ? shownStart + 1 : 0}-${shownEnd} of ${total}`,
       `• Page size ${ps} (${state.cols}×${state.rows})`,
       `• Column step ${colStep}`,
       `• ${lockFilterLabel}`,
       achInfo,
+      sizeInfo,
       state.search ? `• Filter: "${state.search}"` : "",
     ]
       .filter(Boolean)
@@ -754,6 +793,7 @@ async function init() {
         const locked = !isVehicleUnlocked(id);
 
         const meta = optionMeta(state.type, o);
+        const sizeMeta = formatVehicleSizeShort(o);
         const defaultBadge = isDefault
           ? `<div class="vf-tileBadge vf-tileBadgeStar">★ Default</div>`
           : "";
@@ -761,7 +801,7 @@ async function init() {
           ? `<div class="vf-tileBadge vf-tileBadgeLock">🔒 Locked</div>`
           : "";
 
-        const tileMeta = [...[meta, locked ? lockReason(id) : ""].filter(Boolean)].join(" • ");
+        const tileMeta = [...[meta, sizeMeta, locked ? lockReason(id) : ""].filter(Boolean)].join(" • ");
 
         return `
           <div class="vf-vehicleTile ${isSelected ? "is-selected" : ""} ${locked ? "is-locked" : ""}" data-id="${escapeHtml(id)}" ${locked ? 'data-locked="1"' : ""} role="button" tabindex="0">
@@ -819,6 +859,17 @@ async function init() {
 
     const displayName = opt?.displayName || (selId ? selId : "(none)");
     elSelectedLabel.textContent = selId ? `Selected: ${displayName} (${selId})` : "Select a vehicle…";
+
+    if (elSelectedSize) {
+      const sizeTxt = opt ? formatVehicleSizeDetail(opt) : "";
+      if (sizeTxt) {
+        elSelectedSize.hidden = false;
+        elSelectedSize.textContent = `Size: ${sizeTxt}`;
+      } else {
+        elSelectedSize.hidden = true;
+        elSelectedSize.textContent = "";
+      }
+    }
 
     // Locked vehicle info (and what unlocks it)
     if (!elSelectedUnlockInfo) {
@@ -989,6 +1040,7 @@ async function init() {
 
     renderTypeChips();
     renderAchievementFilterSelect();
+    renderSizeFilterSelect();
     renderGrid();
     ensureServerDefaultLoaded();
   }
@@ -1054,6 +1106,13 @@ async function init() {
     renderGrid();
   }
 
+  function onSizeFilterChange() {
+    state.sizeFilter = normalizeSizeFilterKey(elSizeFilter?.value || "all");
+    state.offset = 0;
+    saveUiState(state);
+    renderGrid();
+  }
+
   function onSearchInput() {
     state.search = elSearch.value || "";
     state.offset = 0;
@@ -1112,6 +1171,7 @@ async function init() {
   elShowLocked?.addEventListener("change", onLockToggleChange);
   elAchUnlockedFilter?.addEventListener("change", onAchievementUnlockedFilterChange);
   elAchLockedFilter?.addEventListener("change", onAchievementLockedFilterChange);
+  elSizeFilter?.addEventListener("change", onSizeFilterChange);
   elSearch.addEventListener("input", onSearchInput);
   elCols.addEventListener("change", onColsRowsChange);
   elRows.addEventListener("change", onColsRowsChange);
@@ -1142,6 +1202,7 @@ async function init() {
   renderTypeChips();
   renderLockFilterChips();
   renderAchievementFilterSelect();
+  renderSizeFilterSelect();
   updateGridColumns();
   renderGrid();
   ensureServerDefaultLoaded();
