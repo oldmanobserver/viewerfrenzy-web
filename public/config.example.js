@@ -26,5 +26,5 @@ window.VF_CONFIG = {
   // Unity convention is 1 unit = 1 meter, so the default is 1.
   // If your exported sizes are in a different scale, change this.
   // Example: if 0.05 Unity units should display as 1 meter, set this to 0.05.
-  vehicleSizeUnitsPerMeter: 1,
+  vehicleSizeUnitsPerMeter: 0.05,
 };
