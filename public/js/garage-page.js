@@ -3,6 +3,7 @@ import { loadVehicleCatalog, isRandomPlaceholderId } from "./catalog.js";
 import * as api from "./api.js";
 import { toast } from "./ui.js";
 import { applyVehicleImage } from "./vehicle-images.js";
+import { createDataGrid } from "./datagrid.js";
 import {
   SIZE_FILTER_OPTIONS,
   normalizeSizeFilterKey,
@@ -13,7 +14,8 @@ import {
 } from "./vehicle-size.js";
 
 const PREFERRED_ORDER = ["ground", "resort", "space", "water", "trackfield", "winter"];
-const UI_STATE_KEY = "vf_garage_ui_v1";
+const UI_STATE_KEY_V2 = "vf_garage_ui_v2";
+const UI_STATE_KEY_V1 = "vf_garage_ui_v1";
 
 function escapeHtml(s) {
   return String(s)
@@ -29,29 +31,40 @@ function clamp(n, min, max) {
 }
 
 function loadUiState() {
-  try {
-    const raw = localStorage.getItem(UI_STATE_KEY);
-    if (!raw) return null;
-    const obj = JSON.parse(raw);
-    if (!obj || typeof obj !== "object") return null;
-    return obj;
-  } catch {
-    return null;
+  // v2 is the new shape (pageSize + datagrid table). If it's missing,
+  // fall back to v1 and migrate what we can.
+  const tryKeys = [UI_STATE_KEY_V2, UI_STATE_KEY_V1];
+
+  for (const key of tryKeys) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const obj = JSON.parse(raw);
+      if (!obj || typeof obj !== "object") continue;
+      return obj;
+    } catch {
+      // keep trying other keys
+    }
   }
+  return null;
 }
 
 function saveUiState(state) {
   try {
     localStorage.setItem(
-      UI_STATE_KEY,
+      UI_STATE_KEY_V2,
       JSON.stringify({
         type: state.type,
         search: state.search,
         sizeFilter: state.sizeFilter,
-        cols: state.cols,
-        rows: state.rows,
+
+        // New paging (datagrid)
+        pageSize: Number(state.pageSize || 25) || 25,
+
+        // Filters
         showUnlocked: !!state.showUnlocked,
         showLocked: !!state.showLocked,
+
         // Achievement filters
         // Only one of these should be non-zero at a time.
         achievementUnlockedFilterId: Number(state.achievementUnlockedFilterId || 0) || 0,
@@ -140,12 +153,18 @@ async function init() {
   const savedUnlockedAchFilterId = Number(uiSaved.achievementUnlockedFilterId || 0) || 0;
   const savedLockedAchFilterId = Number(uiSaved.achievementLockedFilterId || 0) || 0;
 
+
+  const legacyCols = clamp(Number(uiSaved.cols || 4), 1, 8);
+  const legacyRows = clamp(Number(uiSaved.rows || 3), 1, 8);
+  const legacyPageSize = legacyCols * legacyRows;
+  const savedPageSize = Number(uiSaved.pageSize || 0) || 0;
+  const initialPageSize = clamp(savedPageSize || legacyPageSize || 25, 5, 200);
+
   const state = {
     type: uiSaved.type && availableTypes.includes(uiSaved.type) ? uiSaved.type : (availableTypes[0] || "ground"),
     search: typeof uiSaved.search === "string" ? uiSaved.search : "",
     sizeFilter: normalizeSizeFilterKey(typeof uiSaved.sizeFilter === "string" ? uiSaved.sizeFilter : "all"),
-    cols: clamp(Number(uiSaved.cols || 4), 1, 8),
-    rows: clamp(Number(uiSaved.rows || 3), 1, 8),
+    pageSize: initialPageSize,
 
     // Filters
     // Default behavior: show only unlocked vehicles (most user-friendly)
@@ -155,8 +174,6 @@ async function init() {
     // Only one of these should be non-zero at a time.
     achievementUnlockedFilterId: savedUnlockedAchFilterId,
     achievementLockedFilterId: savedLockedAchFilterId || (savedUnlockedAchFilterId ? 0 : legacyAchievementFilterId),
-
-    offset: 0,           // index into filtered options
     selectedId: null,    // currently selected vehicle id
     serverDefaults: {},  // type -> record|null|undefined
 
@@ -262,30 +279,10 @@ async function init() {
           <div class="vf-muted vf-small">Set a default for each mode.</div>
         </div>
         <div class="vf-spacer"></div>
-
-        <div class="vf-controlsGrid">
-          <label class="vf-field">
-            <span class="vf-fieldLabel">Columns</span>
-            <input id="vf-cols" class="vf-input vf-inputSmall" type="number" min="1" max="8" step="1" />
-          </label>
-
-          <label class="vf-field">
-            <span class="vf-fieldLabel">Rows</span>
-            <input id="vf-rows" class="vf-input vf-inputSmall" type="number" min="1" max="8" step="1" />
-          </label>
-        </div>
       </div>
 
       <div class="vf-row" style="margin-top: 10px">
         <input id="vf-search" class="vf-input" placeholder="Search vehicles…" />
-        <div class="vf-spacer"></div>
-
-        <div class="vf-pager">
-          <button id="vf-pageUp" class="vf-btn vf-btnSecondary vf-btnTiny" type="button">Page Up</button>
-          <button id="vf-pageDown" class="vf-btn vf-btnSecondary vf-btnTiny" type="button">Page Down</button>
-          <button id="vf-prevCol" class="vf-btn vf-btnSecondary vf-btnTiny" type="button">Prev Column</button>
-          <button id="vf-nextCol" class="vf-btn vf-btnSecondary vf-btnTiny" type="button">Next Column</button>
-        </div>
       </div>
 
       <div class="vf-row" style="margin-top: 10px; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
@@ -327,14 +324,14 @@ async function init() {
       <div class="vf-card">
         <div class="vf-row">
           <div>
-            <div class="vf-h2">Vehicle grid</div>
+            <div class="vf-h2">Vehicle list</div>
             <div class="vf-muted vf-small" id="vf-gridSubtitle"></div>
           </div>
           <div class="vf-spacer"></div>
           <div class="vf-muted vf-small" id="vf-serverStatus"></div>
         </div>
 
-        <div id="vf-tiles" class="vf-gridFixed"></div>
+        <div id="vf-vehicleGrid"></div>
 
         <div id="vf-garageError" class="vf-alert vf-alertError" hidden></div>
       </div>
@@ -371,9 +368,7 @@ async function init() {
   const elAchLockedFilter = root.querySelector("#vf-achLockedFilter");
   const elSizeFilter = root.querySelector("#vf-sizeFilter");
   const elSearch = root.querySelector("#vf-search");
-  const elCols = root.querySelector("#vf-cols");
-  const elRows = root.querySelector("#vf-rows");
-  const elTiles = root.querySelector("#vf-tiles");
+  const elVehicleGrid = root.querySelector("#vf-vehicleGrid");
   const elErr = root.querySelector("#vf-garageError");
   const elPageInfo = root.querySelector("#vf-pageInfo");
   const elGridSubtitle = root.querySelector("#vf-gridSubtitle");
@@ -385,20 +380,92 @@ async function init() {
   const elPreviewImg = root.querySelector("#vf-previewImg");
   const elSavedLabel = root.querySelector("#vf-savedDefaultLabel");
 
-  const btnPageUp = root.querySelector("#vf-pageUp");
-  const btnPageDown = root.querySelector("#vf-pageDown");
-  const btnPrevCol = root.querySelector("#vf-prevCol");
-  const btnNextCol = root.querySelector("#vf-nextCol");
-
   const btnSave = root.querySelector("#vf-saveDefaultBtn");
   const btnClear = root.querySelector("#vf-clearDefaultBtn");
 
   elSearch.value = state.search;
-  elCols.value = String(state.cols);
-  elRows.value = String(state.rows);
 
   if (elShowUnlocked) elShowUnlocked.checked = !!state.showUnlocked;
   if (elShowLocked) elShowLocked.checked = !!state.showLocked;
+
+
+  // -------- Vehicle list (datagrid table) --------
+  // We'll keep the existing filter UI, but replace the old tile grid + column/row paging
+  // with a sortable/paged table similar to the Track Components page.
+
+  // The server default id for the current mode (updated inside renderGrid()).
+  let currentServerDefaultId = "";
+
+  const pageSizeOptions = Array.from(new Set([Number(state.pageSize || 25) || 25, 10, 25, 50, 100]))
+    .filter((n) => Number.isFinite(n) && n > 0)
+    .sort((a, b) => a - b);
+
+  function buildThumbCell(opt) {
+    const wrap = document.createElement("div");
+    wrap.className = "vf-gridThumb";
+    const img = document.createElement("img");
+    img.className = "vf-gridThumbImg";
+    img.alt = "";
+    img.loading = "lazy";
+    wrap.appendChild(img);
+
+    const id = String(opt?.id || "");
+    applyVehicleImage(img, {
+      type: state.type,
+      id,
+      label: String(opt?.displayName || id),
+      variant: "thumb",
+    });
+
+    return wrap;
+  }
+
+  function buildIdCell(opt) {
+    const code = document.createElement("code");
+    code.textContent = String(opt?.id || "");
+    return code;
+  }
+
+  function statusText(opt) {
+    const id = String(opt?.id || "");
+    if (!id) return "";
+
+    const parts = [];
+    if (currentServerDefaultId && id === currentServerDefaultId) parts.push("★ Default");
+    if (isRandomPlaceholderId(id)) parts.push("🎲 Random");
+    if (!isVehicleUnlocked(id)) parts.push("🔒 Locked");
+    return parts.join(" • ");
+  }
+
+  const vehicleGrid = createDataGrid(elVehicleGrid, {
+    showSearch: false, // search already exists in the Filters card
+    columns: [
+      { key: "_thumb", label: "Preview", width: "66px", sortable: false, render: (o) => buildThumbCell(o) },
+      { key: "id", label: "Vehicle ID", width: "280px", value: (o) => o?.id || "", render: (o) => buildIdCell(o) },
+      { key: "displayName", label: "Name", value: (o) => o?.displayName || o?.id || "" },
+      { key: "pack", label: "Pack", value: (o) => o?.pack || "" },
+      { key: "category", label: "Category", value: (o) => o?.category || "" },
+      { key: "_size", label: "Size", width: "160px", value: (o) => formatVehicleSizeShort(o, state.type) },
+      { key: "_status", label: "Status", width: "160px", value: (o) => statusText(o) },
+    ],
+    getRowId: (o) => o?.id,
+    onRowSelect: (o) => {
+      state.selectedId = String(o?.id || "");
+      renderPreview();
+    },
+    pageSizeOptions,
+    initialPageSize: Number(state.pageSize || 25) || 25,
+    emptyMessage: "No vehicles match your filters.",
+  });
+
+  // Persist page size changes (datagrid owns the select element).
+  const _pageSizeSel = elVehicleGrid.querySelector("select.vf-select");
+  if (_pageSizeSel) {
+    _pageSizeSel.addEventListener("change", () => {
+      state.pageSize = clamp(Number(_pageSizeSel.value || state.pageSize), 5, 200);
+      saveUiState(state);
+    });
+  }
 
   function setError(message) {
     elErr.hidden = !message;
@@ -474,15 +541,6 @@ async function init() {
       const hay = `${o.displayName || ""} ${o.id || ""} ${o.pack || ""} ${o.category || ""}`.toLowerCase();
       return hay.includes(filter);
     });
-  }
-
-  function pageSize() {
-    return Math.max(1, state.cols * state.rows);
-  }
-
-  function clampOffset(total) {
-    const maxStart = Math.max(0, total - 1);
-    state.offset = clamp(state.offset, 0, maxStart);
   }
 
   function getServerRecord() {
@@ -712,15 +770,7 @@ async function init() {
     elSizeFilter.value = normalizeSizeFilterKey(state.sizeFilter);
   }
 
-  function updateGridColumns() {
-    // fixed column count (user controlled)
-    elTiles.style.gridTemplateColumns = `repeat(${state.cols}, minmax(0, 1fr))`;
-  }
-
-  function renderPageInfo(total, shownStart, shownEnd) {
-    const ps = pageSize();
-    const colStep = state.rows;
-
+  function renderPageInfo(total) {
     const lockFilterLabel = state.showUnlocked && state.showLocked
       ? "Unlocked + Locked"
       : state.showUnlocked
@@ -741,9 +791,7 @@ async function init() {
     const sizeInfo = sizeKey !== "all" ? `• Size: ${labelForSizeFilterKey(sizeKey)}` : "";
 
     const info = [
-      `Showing ${total ? shownStart + 1 : 0}-${shownEnd} of ${total}`,
-      `• Page size ${ps} (${state.cols}×${state.rows})`,
-      `• Column step ${colStep}`,
+      `Total ${total} vehicles`,
       `• ${lockFilterLabel}`,
       achInfo,
       sizeInfo,
@@ -760,78 +808,43 @@ async function init() {
     const opts = filteredOptions();
     const total = opts.length;
 
-    clampOffset(total);
-
-    // Determine selection (user-selected > server default > first visible).
-    const selectedId = selectedIdFromOptions(opts);
-
-    const start = clamp(state.offset, 0, Math.max(0, total));
-    const endExclusive = Math.min(total, start + pageSize());
-    const slice = opts.slice(start, endExclusive);
-
-    // Server default badge
+    // Update the cached server-default id used by the Status column.
     const record = getServerRecord();
-    const serverVehicleId = record === null ? null : (record?.vehicleId ?? "");
-    const defaultId = serverVehicleId ? serverVehicleId : "";
+    const serverVehicleId = record && typeof record === "object" ? String(record.vehicleId || "") : "";
+    currentServerDefaultId = serverVehicleId;
 
-    // Subtitle + server status
     const entryLabel = entry?.label || state.type;
     elGridSubtitle.textContent = `${entryLabel} • ${total} vehicles`;
 
-    if (record === undefined) elServerStatus.textContent = "Server: loading…";
-    else if (record === null) elServerStatus.textContent = "Server: no saved default yet";
-    else elServerStatus.textContent = "Server: loaded";
+    // Server status badge (top-right of the list card header)
+    if (record === undefined) {
+      elServerStatus.textContent = "Server: loading…";
+    } else if (record === null) {
+      elServerStatus.textContent = "Server: using default pool";
+    } else {
+      const label = labelForServerRecord(state.type, record, entry);
+      elServerStatus.textContent = `Server: ${label.label}`;
+    }
 
-    // Page info
-    renderPageInfo(total, start, endExclusive);
+    renderPageInfo(total);
 
-    // Render tiles
-    elTiles.innerHTML = slice
-      .map((o) => {
-        const id = o.id || "";
-        const isSelected = id === selectedId;
-        const isDefault = id === defaultId;
-        const locked = !isVehicleUnlocked(id);
+    vehicleGrid.setRows(opts, { preserveSelection: true });
 
-        const meta = optionMeta(state.type, o);
-        // Pass current type so ground/space can use different conversion scales.
-        const sizeMeta = formatVehicleSizeShort(o, state.type);
-        const defaultBadge = isDefault
-          ? `<div class="vf-tileBadge vf-tileBadgeStar">★ Default</div>`
-          : "";
-        const lockedBadge = locked
-          ? `<div class="vf-tileBadge vf-tileBadgeLock">🔒 Locked</div>`
-          : "";
-
-        const tileMeta = [...[meta, sizeMeta, locked ? lockReason(id) : ""].filter(Boolean)].join(" • ");
-
-        return `
-          <div class="vf-vehicleTile ${isSelected ? "is-selected" : ""} ${locked ? "is-locked" : ""}" data-id="${escapeHtml(id)}" ${locked ? 'data-locked="1"' : ""} role="button" tabindex="0">
-            ${defaultBadge}${lockedBadge}
-            <div class="vf-tileThumb">
-              <img class="vf-tileImg" data-veh-type="${escapeHtml(state.type)}" data-veh-id="${escapeHtml(id)}" alt="" loading="lazy" />
-            </div>
-            <div class="vf-tileInfo">
-              <div class="vf-tileTitle">${escapeHtml(o.displayName || id)}</div>
-              ${tileMeta ? `<div class="vf-tileMeta">${escapeHtml(tileMeta)}</div>` : ""}
-              <div class="vf-tileId">${escapeHtml(id)}</div>
-            </div>
-          </div>
-        `;
-      })
-      .join("");
-
-    // Apply images after DOM insertion
-    elTiles.querySelectorAll("img.vf-tileImg").forEach((img) => {
-      const t = img.getAttribute("data-veh-type") || "";
-      const id = img.getAttribute("data-veh-id") || "";
-      const label = img.closest(".vf-vehicleTile")?.querySelector(".vf-tileTitle")?.textContent || id;
-      applyVehicleImage(img, { type: t, id, label, variant: "thumb" });
-    });
-
-    // Update preview
-    renderPreview();
+    const selId = selectedIdFromOptions(opts);
+    if (selId) {
+      state.selectedId = selId;
+      if (vehicleGrid.selectedId !== selId) {
+        vehicleGrid.selectById(selId);
+      } else {
+        renderPreview();
+      }
+    } else {
+      state.selectedId = null;
+      vehicleGrid.clearSelection();
+      renderPreview();
+    }
   }
+
 
   function updateActionButtons(selectedId) {
     const id = String(selectedId || "").trim();
@@ -1035,8 +1048,6 @@ async function init() {
 
     state.type = type;
     state.selectedId = null;
-    state.offset = 0;
-
     saveUiState(state);
     setError("");
 
@@ -1064,8 +1075,6 @@ async function init() {
         if (elShowUnlocked) elShowUnlocked.checked = true;
       }
     }
-
-    state.offset = 0;
     saveUiState(state);
     renderGrid();
   }
@@ -1082,8 +1091,6 @@ async function init() {
         if (elShowUnlocked) elShowUnlocked.checked = true;
       }
     }
-
-    state.offset = 0;
     saveUiState(state);
     renderGrid();
   }
@@ -1102,69 +1109,20 @@ async function init() {
         if (elShowLocked) elShowLocked.checked = true;
       }
     }
-
-    state.offset = 0;
     saveUiState(state);
     renderGrid();
   }
 
   function onSizeFilterChange() {
     state.sizeFilter = normalizeSizeFilterKey(elSizeFilter?.value || "all");
-    state.offset = 0;
     saveUiState(state);
     renderGrid();
   }
 
   function onSearchInput() {
     state.search = elSearch.value || "";
-    state.offset = 0;
     saveUiState(state);
     renderGrid();
-  }
-
-  function onColsRowsChange() {
-    state.cols = clamp(Number(elCols.value || 4), 1, 8);
-    state.rows = clamp(Number(elRows.value || 3), 1, 8);
-    elCols.value = String(state.cols);
-    elRows.value = String(state.rows);
-
-    state.offset = 0;
-    saveUiState(state);
-
-    updateGridColumns();
-    renderGrid();
-  }
-
-  function stepOffset(delta) {
-    const opts = filteredOptions();
-    const total = opts.length;
-    if (!total) return;
-
-    const maxStart = Math.max(0, total - 1);
-    state.offset = clamp(state.offset + delta, 0, maxStart);
-    renderGrid();
-  }
-
-  function onTileActivate(tile) {
-    const id = tile.getAttribute("data-id");
-    if (!id) return;
-
-    state.selectedId = id;
-    renderGrid();
-  }
-
-  function onTilesClick(ev) {
-    const tile = ev.target.closest(".vf-vehicleTile");
-    if (!tile) return;
-    onTileActivate(tile);
-  }
-
-  function onTilesKeydown(ev) {
-    if (ev.key !== "Enter" && ev.key !== " ") return;
-    const tile = ev.target.closest(".vf-vehicleTile");
-    if (!tile) return;
-    ev.preventDefault();
-    onTileActivate(tile);
   }
 
   // Wire events
@@ -1175,28 +1133,6 @@ async function init() {
   elAchLockedFilter?.addEventListener("change", onAchievementLockedFilterChange);
   elSizeFilter?.addEventListener("change", onSizeFilterChange);
   elSearch.addEventListener("input", onSearchInput);
-  elCols.addEventListener("change", onColsRowsChange);
-  elRows.addEventListener("change", onColsRowsChange);
-
-  elTiles.addEventListener("click", onTilesClick);
-  elTiles.addEventListener("keydown", onTilesKeydown);
-
-  btnPageUp.addEventListener("click", () => stepOffset(-pageSize()));
-  btnPageDown.addEventListener("click", () => stepOffset(+pageSize()));
-  btnPrevCol.addEventListener("click", () => stepOffset(-Math.max(1, state.rows)));
-  btnNextCol.addEventListener("click", () => stepOffset(+Math.max(1, state.rows)));
-
-  // Keyboard PageUp/PageDown support on the whole document
-  document.addEventListener("keydown", (ev) => {
-    if (ev.key === "PageUp") {
-      ev.preventDefault();
-      stepOffset(-pageSize());
-    } else if (ev.key === "PageDown") {
-      ev.preventDefault();
-      stepOffset(+pageSize());
-    }
-  });
-
   btnSave.addEventListener("click", () => saveSelectionAsDefault());
   btnClear.addEventListener("click", () => clearServerDefault());
 
@@ -1205,7 +1141,6 @@ async function init() {
   renderLockFilterChips();
   renderAchievementFilterSelect();
   renderSizeFilterSelect();
-  updateGridColumns();
   renderGrid();
   ensureServerDefaultLoaded();
 }
