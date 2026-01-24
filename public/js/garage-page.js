@@ -439,6 +439,12 @@ async function init() {
 
   const vehicleGrid = createDataGrid(elVehicleGrid, {
     showSearch: false, // search already exists in the Filters card
+    columnPicker: {
+      // Remember per-browser (localStorage) which columns the viewer prefers.
+      storageKey: "vf_garage_vehicle_columns_v1",
+      // Default: keep the table compact so the Selected panel has room.
+      defaultVisibleKeys: ["_thumb", "displayName", "_size", "_status"],
+    },
     columns: [
       { key: "_thumb", label: "Preview", width: "66px", sortable: false, render: (o) => buildThumbCell(o) },
       { key: "id", label: "Vehicle ID", width: "280px", value: (o) => o?.id || "", render: (o) => buildIdCell(o) },

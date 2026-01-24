@@ -40,6 +40,14 @@ export function createDataGrid(container, {
   pageSizeOptions = [10, 25, 50, 100],
   initialPageSize = 25,
   emptyMessage = "No records.",
+  // Optional column picker UI (persisted in localStorage)
+  // Example:
+  //   columnPicker: {
+  //     storageKey: "vf_my_page_columns_v1",
+  //     defaultVisibleKeys: ["name", "status"],
+  //     buttonLabel: "Columns",
+  //   }
+  columnPicker = null,
   // Optional UI toggles (defaults match existing behavior)
   showSearch = true,
   showPageSize = true,
@@ -80,6 +88,156 @@ export function createDataGrid(container, {
     }
     pageSizeSel.value = String(initialPageSize);
     toolChildren.push(pageSizeSel);
+  }
+
+  // --- Column picker
+  const colCfg = (columnPicker && typeof columnPicker === "object") ? columnPicker : null;
+  const colStorageKey = String(colCfg?.storageKey || "").trim();
+
+  function normalizeKeyList(list) {
+    return (Array.isArray(list) ? list : [])
+      .map((x) => String(x || "").trim())
+      .filter(Boolean);
+  }
+
+  function loadVisibleColumnKeys() {
+    if (!colStorageKey) return null;
+    try {
+      const raw = localStorage.getItem(colStorageKey);
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      const keys = normalizeKeyList(obj?.visibleKeys);
+      return keys.length ? keys : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveVisibleColumnKeys(keys) {
+    if (!colStorageKey) return;
+    try {
+      localStorage.setItem(colStorageKey, JSON.stringify({ visibleKeys: normalizeKeyList(keys) }));
+    } catch {
+      // ignore
+    }
+  }
+
+  function applyVisibleColumnKeys(keys) {
+    const wanted = new Set(normalizeKeyList(keys));
+    for (const c of columns) {
+      // If no keys are specified, default to visible.
+      if (!wanted.size) {
+        c.hidden = false;
+      } else {
+        c.hidden = !wanted.has(String(c.key || ""));
+      }
+    }
+  }
+
+  function currentVisibleKeys() {
+    return columns
+      .filter((c) => !c.hidden)
+      .map((c) => String(c.key || "").trim())
+      .filter(Boolean);
+  }
+
+  // Initialize column visibility from localStorage (or defaults)
+  if (colCfg && colStorageKey) {
+    const fromStorage = loadVisibleColumnKeys();
+    const fromDefault = normalizeKeyList(colCfg.defaultVisibleKeys);
+    applyVisibleColumnKeys(fromStorage || fromDefault);
+
+    // Safety: never allow 0 visible columns.
+    if (!currentVisibleKeys().length && columns.length) {
+      columns[0].hidden = false;
+    }
+  }
+
+  let colBtn = null;
+  let colPanel = null;
+  if (colCfg && colStorageKey) {
+    const wrap = el("div", { class: "vf-colPicker" });
+    colBtn = el("button", {
+      class: "vf-btn vf-btnSecondary vf-btnTiny",
+      type: "button",
+      text: String(colCfg.buttonLabel || "Columns"),
+      title: "Choose columns",
+    });
+    colBtn.setAttribute("aria-haspopup", "true");
+    colBtn.setAttribute("aria-expanded", "false");
+
+    colPanel = el("div", { class: "vf-colPickerPanel", hidden: true });
+    colPanel.appendChild(el("div", { class: "vf-colPickerTitle", text: "Columns" }));
+
+    const list = el("div", { class: "vf-colPickerList" });
+    colPanel.appendChild(list);
+
+    function renderColPickerList() {
+      list.innerHTML = "";
+      const visibleNow = new Set(currentVisibleKeys());
+
+      columns.forEach((c, idx) => {
+        const key = String(c.key || "");
+        const id = `vf-col-${Math.random().toString(16).slice(2)}-${idx}`;
+        const label = String(c.label || c.key || "");
+
+        const input = el("input", { type: "checkbox", id });
+        input.checked = visibleNow.has(key);
+
+        input.addEventListener("change", () => {
+          // Enforce at least one column visible.
+          const next = new Set(currentVisibleKeys());
+          if (input.checked) next.add(key);
+          else next.delete(key);
+
+          if (!next.size) {
+            input.checked = true;
+            return;
+          }
+
+          applyVisibleColumnKeys([...next]);
+          saveVisibleColumnKeys([...next]);
+          refresh();
+          renderColPickerList();
+        });
+
+        const row = el("label", { class: "vf-colPickerOpt", for: id }, [
+          input,
+          el("span", { text: label }),
+        ]);
+        list.appendChild(row);
+      });
+    }
+
+    function closeColPicker() {
+      if (!colPanel) return;
+      colPanel.hidden = true;
+      if (colBtn) colBtn.setAttribute("aria-expanded", "false");
+    }
+
+    function toggleColPicker() {
+      if (!colPanel) return;
+      const open = !!colPanel.hidden;
+      colPanel.hidden = !open;
+      if (colBtn) colBtn.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) renderColPickerList();
+    }
+
+    colBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleColPicker();
+    });
+    colPanel.addEventListener("click", (e) => e.stopPropagation());
+
+    document.addEventListener("click", closeColPicker);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeColPicker();
+    });
+
+    wrap.appendChild(colBtn);
+    wrap.appendChild(colPanel);
+    toolChildren.push(wrap);
   }
 
   const countLabel = showCount ? el("div", { class: "vf-small vf-muted" }) : null;

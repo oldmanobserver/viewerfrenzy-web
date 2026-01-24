@@ -1274,3 +1274,63 @@ select.vf-input optgroup {
   object-fit: contain;
   display: block;
 }
+
+/* Column picker (datagrid) */
+.vf-colPicker {
+  position: relative;
+}
+
+.vf-colPickerPanel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 220px;
+  max-width: 320px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 10px;
+  z-index: 30;
+}
+
+.vf-colPickerTitle {
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.vf-colPickerList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.vf-colPickerOpt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+}
+
+.vf-colPickerOpt:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.10);
+}
+
+.vf-colPickerOpt input {
+  width: 16px;
+  height: 16px;
+}
+
+.vf-colPickerOpt span {
+  font-size: 12px;
+  font-weight: 800;
+}
