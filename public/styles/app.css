@@ -602,9 +602,22 @@ select.vf-input optgroup {
   margin-top: 12px;
 }
 
+/*
+  Garage uses a horizontally scrollable vehicle table.
+
+  In CSS Grid, children default to min-width:auto which can allow wide content
+  (like tables with a min-width) to force the entire grid wider than the
+  container. Setting min-width:0 on the direct children ensures the table can
+  scroll inside its own card without stretching the whole layout.
+*/
+.vf-garageLayout > * {
+  min-width: 0;
+}
+
 @media (min-width: 980px) {
   .vf-garageLayout {
-    grid-template-columns: 1.2fr 0.8fr;
+    /* Use minmax(0, …) so columns can shrink even when content is wide. */
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
     align-items: start;
   }
 }
@@ -809,6 +822,15 @@ select.vf-input optgroup {
   width: 100%;
   border-collapse: collapse;
   min-width: 1180px; /* allow horizontal scroll for many columns */
+}
+
+/*
+  Opt-in override for tables that should NOT force a large min-width.
+  Used by the Garage vehicle list so the Name column doesn't expand to an
+  unnecessarily wide size when only a few columns are visible.
+*/
+.vf-tableAuto {
+  min-width: 0;
 }
 
 /* Allow a slightly narrower table when users hide most columns */

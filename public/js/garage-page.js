@@ -464,6 +464,12 @@ async function init() {
     emptyMessage: "No vehicles match your filters.",
   });
 
+  // The global .vf-table style has a large min-width (used for wide stats tables).
+  // For the Garage vehicle list we want the table to size to its container so the
+  // Name column doesn't expand to an unnecessarily wide width.
+  const gridTable = elVehicleGrid.querySelector("table.vf-table");
+  if (gridTable) gridTable.classList.add("vf-tableAuto");
+
   // Persist page size changes (datagrid owns the select element).
   const _pageSizeSel = elVehicleGrid.querySelector("select.vf-select");
   if (_pageSizeSel) {
