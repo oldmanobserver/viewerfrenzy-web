@@ -7,20 +7,51 @@
 //
 // Config:
 //   window.VF_CONFIG.vehicleSizeUnitsPerMeter
-//     - How many Unity units equal 1 meter.
+//     - Default: How many Unity units equal 1 meter.
 //     - Unity convention: 1 unit = 1 meter.
+//
+//   window.VF_CONFIG.vehicleSizeUnitsPerMeterByType
+//     - Optional per-vehicle-type override.
+//     - Example:
+//         vehicleSizeUnitsPerMeter: 0.05,
+//         vehicleSizeUnitsPerMeterByType: { ground: 0.14, space: 0.05 }
+//
+// NOTE:
+// Many projects use different in-game scales for different content packs.
+// This module supports per-type scaling so “ground cars” can feel realistic
+// while “space ships” can remain large/fun.
 
 function toNumber(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
 
-export function getVehicleSizeUnitsPerMeter() {
+export function getVehicleSizeUnitsPerMeter(vehicleType = "") {
+  const typeKey = String(vehicleType || "").trim().toLowerCase();
+
+  // Prefer per-type overrides if present.
+  const byType = window?.VF_CONFIG?.vehicleSizeUnitsPerMeterByType;
+  if (byType && typeof byType === "object" && typeKey) {
+    const rawT = byType[typeKey];
+    const nT = toNumber(rawT);
+    if (nT && nT > 0) return nT;
+  }
+
+  // Fall back to the global default.
   const raw = window?.VF_CONFIG?.vehicleSizeUnitsPerMeter;
   const n = toNumber(raw);
   // Safety: avoid divide-by-zero and nonsense.
   if (!n || n <= 0) return 1;
   return n;
+}
+
+function resolveUnitsPerMeter(unitsPerMeterOrType) {
+  if (typeof unitsPerMeterOrType === "string") {
+    return getVehicleSizeUnitsPerMeter(unitsPerMeterOrType);
+  }
+  const n = Number(unitsPerMeterOrType);
+  if (Number.isFinite(n) && n > 0) return n;
+  return getVehicleSizeUnitsPerMeter("");
 }
 
 function fmtMeters(n, decimals = 1) {
@@ -70,11 +101,11 @@ function readUnitySize(obj) {
   };
 }
 
-export function getVehicleSizeMeters(obj, unitsPerMeter = getVehicleSizeUnitsPerMeter()) {
+export function getVehicleSizeMeters(obj, unitsPerMeterOrType = undefined) {
   const u = readUnitySize(obj);
   if (!u) return null;
 
-  const upm = Number(unitsPerMeter) || 1;
+  const upm = resolveUnitsPerMeter(unitsPerMeterOrType);
   if (!Number.isFinite(upm) || upm <= 0) return null;
 
   return {
@@ -87,8 +118,8 @@ export function getVehicleSizeMeters(obj, unitsPerMeter = getVehicleSizeUnitsPer
 
 // Short tile-friendly format.
 // Returns "" when no size is available.
-export function formatVehicleSizeShort(obj, unitsPerMeter = getVehicleSizeUnitsPerMeter()) {
-  const m = getVehicleSizeMeters(obj, unitsPerMeter);
+export function formatVehicleSizeShort(obj, unitsPerMeterOrType = undefined) {
+  const m = getVehicleSizeMeters(obj, unitsPerMeterOrType);
   if (!m) return "";
 
   const L = fmtMeters(m.length);
@@ -102,8 +133,8 @@ export function formatVehicleSizeShort(obj, unitsPerMeter = getVehicleSizeUnitsP
 
 // Selected-panel format (explicit labels).
 // Returns "" when no size is available.
-export function formatVehicleSizeDetail(obj, unitsPerMeter = getVehicleSizeUnitsPerMeter()) {
-  const m = getVehicleSizeMeters(obj, unitsPerMeter);
+export function formatVehicleSizeDetail(obj, unitsPerMeterOrType = undefined) {
+  const m = getVehicleSizeMeters(obj, unitsPerMeterOrType);
   if (!m) return "";
 
   const l = fmtMeters(m.length);
@@ -146,8 +177,8 @@ export function labelForSizeFilterKey(key) {
   return b ? b.label : "All";
 }
 
-export function getSizeBucketKey(obj, unitsPerMeter = getVehicleSizeUnitsPerMeter()) {
-  const m = getVehicleSizeMeters(obj, unitsPerMeter);
+export function getSizeBucketKey(obj, unitsPerMeterOrType = undefined) {
+  const m = getVehicleSizeMeters(obj, unitsPerMeterOrType);
   const max = Number(m?.max);
   if (!Number.isFinite(max) || max <= 0) return "unknown";
 
@@ -157,11 +188,11 @@ export function getSizeBucketKey(obj, unitsPerMeter = getVehicleSizeUnitsPerMete
   return "xxl";
 }
 
-export function matchesSizeFilter(obj, filterKey, unitsPerMeter = getVehicleSizeUnitsPerMeter()) {
+export function matchesSizeFilter(obj, filterKey, unitsPerMeterOrType = undefined) {
   const k = normalizeSizeFilterKey(filterKey);
   if (k === "all") return true;
 
-  const bucket = getSizeBucketKey(obj, unitsPerMeter);
+  const bucket = getSizeBucketKey(obj, unitsPerMeterOrType);
   if (k === "unknown") return bucket === "unknown";
   return bucket === k;
 }

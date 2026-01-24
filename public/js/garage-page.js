@@ -427,7 +427,8 @@ async function init() {
     // Size bucket filter.
     const sizeKey = normalizeSizeFilterKey(state.sizeFilter);
     if (sizeKey !== "all") {
-      opts = opts.filter((o) => matchesSizeFilter(o, sizeKey));
+      // Pass the current vehicle type so per-type scale overrides can apply.
+      opts = opts.filter((o) => matchesSizeFilter(o, sizeKey, state.type));
     }
 
     // Achievement filter (two dropdowns): show only vehicles that are unlocked by the selected achievement.
@@ -793,7 +794,8 @@ async function init() {
         const locked = !isVehicleUnlocked(id);
 
         const meta = optionMeta(state.type, o);
-        const sizeMeta = formatVehicleSizeShort(o);
+        // Pass current type so ground/space can use different conversion scales.
+        const sizeMeta = formatVehicleSizeShort(o, state.type);
         const defaultBadge = isDefault
           ? `<div class="vf-tileBadge vf-tileBadgeStar">★ Default</div>`
           : "";
@@ -861,7 +863,7 @@ async function init() {
     elSelectedLabel.textContent = selId ? `Selected: ${displayName} (${selId})` : "Select a vehicle…";
 
     if (elSelectedSize) {
-      const sizeTxt = opt ? formatVehicleSizeDetail(opt) : "";
+      const sizeTxt = opt ? formatVehicleSizeDetail(opt, state.type) : "";
       if (sizeTxt) {
         elSelectedSize.hidden = false;
         elSelectedSize.textContent = `Size: ${sizeTxt}`;

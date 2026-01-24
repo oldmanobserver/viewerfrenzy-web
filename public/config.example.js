@@ -20,11 +20,23 @@ window.VF_CONFIG = {
 
   // Vehicle size conversion
   //
-  // The vehicle catalog may include sizeX/sizeY/sizeZ (Unity units).
-  // This value defines how many Unity units equal 1 meter when displaying sizes on the website.
+  // The vehicle catalog can include sizeX/sizeY/sizeZ (Unity units).
+  // We convert Unity units -> meters for display on the website.
   //
-  // Unity convention is 1 unit = 1 meter, so the default is 1.
-  // If your exported sizes are in a different scale, change this.
+  // Default conversion (fallback): how many Unity units equal 1 meter.
   // Example: if 0.05 Unity units should display as 1 meter, set this to 0.05.
   vehicleSizeUnitsPerMeter: 0.05,
+
+  // Optional per-vehicle-type override.
+  // Useful if (for example) space ships and ground cars are authored at different scales.
+  //
+  // NOTE: meters = unityUnits / unitsPerMeter
+  vehicleSizeUnitsPerMeterByType: {
+    ground: 0.14,
+    space: 0.05,
+    resort: 0.14,
+    trackfield: 0.14,
+    water: 0.14,
+    winter: 0.14,
+  },
 };
