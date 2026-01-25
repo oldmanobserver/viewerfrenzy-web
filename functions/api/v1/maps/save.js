@@ -43,8 +43,9 @@ export async function onRequest(context) {
   if (request.method !== "POST")
     return jsonResponse(request, { ok: false, error: "method_not_allowed" }, 405);
 
-  const access = await requireWebsiteUser(request, env);
-  if (access instanceof Response) return access;
+  const access = await requireWebsiteUser(context);
+  if (!access.ok) return access.response;
+  const authUser = access.user;
 
   const db = env?.VF_D1_STATS;
   if (!db)
@@ -105,7 +106,7 @@ export async function onRequest(context) {
     if (!existing)
       return jsonResponse(request, { ok: false, error: "not_found", message: `Map ${id} not found.` }, 404);
 
-    if (toStr(existing?.created_by_user_id) !== toStr(access?.userId))
+  if (toStr(existing?.created_by_user_id) !== toStr(authUser?.userId))
       return jsonResponse(request, { ok: false, error: "not_owner", message: "You do not own this map." }, 403);
 
     const clash = await db
@@ -172,8 +173,8 @@ export async function onRequest(context) {
       mapHash,
       vehicleType,
       gameMode,
-      toStr(access?.userId),
-      toStr(access?.login),
+      toStr(authUser?.userId),
+      toStr(authUser?.login),
       now,
       now,
     )
