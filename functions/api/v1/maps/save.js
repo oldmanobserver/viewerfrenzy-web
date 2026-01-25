@@ -91,7 +91,6 @@ export async function onRequest(context) {
   const mapHash = toStr(map?.hashSha256);
   const vehicleType = toStr(map?.vehicleType);
   const gameMode = toStr(map?.gameMode);
-  const legacyId = toStr(map?.legacyId);
 
   const now = nowMs();
 
@@ -120,12 +119,10 @@ export async function onRequest(context) {
     await db
       .prepare(
         `UPDATE vf_maps
-         SET name = ?, map_json = ?, map_version = ?, map_hash_sha256 = ?, vehicle_type = ?, game_mode = ?,
-             legacy_id = COALESCE(legacy_id, ?),
-             updated_at_ms = ?
+         SET name = ?, map_json = ?, map_version = ?, map_hash_sha256 = ?, vehicle_type = ?, game_mode = ?, updated_at_ms = ?
          WHERE id = ?`,
       )
-      .bind(name, json, mapVersion, mapHash, vehicleType, gameMode, legacyId, now, id)
+      .bind(name, json, mapVersion, mapHash, vehicleType, gameMode, now, id)
       .run();
 
     const updated = await db
@@ -164,9 +161,9 @@ export async function onRequest(context) {
   const ins = await db
     .prepare(
       `INSERT INTO vf_maps (
-        name, map_json, map_version, map_hash_sha256, vehicle_type, game_mode, legacy_id,
+        name, map_json, map_version, map_hash_sha256, vehicle_type, game_mode,
         created_by_user_id, created_by_login, created_at_ms, updated_at_ms
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       name,
@@ -175,7 +172,6 @@ export async function onRequest(context) {
       mapHash,
       vehicleType,
       gameMode,
-      legacyId || null,
       toStr(access?.userId),
       toStr(access?.login),
       now,

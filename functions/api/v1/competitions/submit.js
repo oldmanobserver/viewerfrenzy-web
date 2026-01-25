@@ -226,7 +226,18 @@ export async function onRequest(context) {
   const vehicleType = toStr(competition?.vehicleType) || "";
   const gameMode = toStr(competition?.gameMode) || "";
 
-  const trackId = toStr(competition?.trackId);
+  const trackIdRaw = toStr(competition?.trackId);
+  // Track IDs are now auto-increment integers in vf_maps.
+  // Older clients may still send legacy string IDs; keep those in `map_key`.
+  const trackIdInt = (() => {
+    if (!trackIdRaw) return null;
+    const s = String(trackIdRaw).trim();
+    if (!s) return null;
+    if (!/^[0-9]+$/.test(s)) return null;
+    const n = parseInt(s, 10);
+    return Number.isFinite(n) ? n : null;
+  })();
+  const trackKey = trackIdRaw && trackIdInt === null ? trackIdRaw : null;
   const trackName = toStr(competition?.trackName);
   const trackVersion = toInt(competition?.trackVersion, { min: 0, max: 9999, fallback: 0 });
   const trackHashSha256 = toStr(competition?.trackHashSha256);
@@ -266,7 +277,65 @@ export async function onRequest(context) {
   const updatedAtMs = createdAtMs;
 
   // 1) Upsert competition
-  const upsertCompetitionSql = `
+  // Back-compat: deployments may briefly run this code before the migration that adds competitions.map_key.
+  const hasMapKeyCol = await (async () => {
+    try {
+      const cols = await env.VF_D1_STATS
+        .prepare("PRAGMA table_info(competitions)")
+        .all();
+      return (cols?.results || []).some((r) => r?.name === "map_key");
+    } catch {
+      return false;
+    }
+  })();
+
+  const upsertCompetitionSql = hasMapKeyCol
+    ? `
+    INSERT INTO competitions (
+      competition_uuid,
+      streamer_user_id,
+      streamer_login,
+      season_id,
+      map_id,
+      map_key,
+      map_name,
+      map_version,
+      map_hash_sha256,
+      vehicle_type,
+      game_mode,
+      race_seed,
+      track_length_m,
+      started_at_ms,
+      ended_at_ms,
+      winner_user_id,
+      client_version,
+      unity_version,
+      created_at_ms,
+      updated_at_ms
+    ) VALUES (
+      ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
+    )
+    ON CONFLICT(competition_uuid) DO UPDATE SET
+      streamer_user_id=excluded.streamer_user_id,
+      streamer_login=excluded.streamer_login,
+      season_id=excluded.season_id,
+      map_id=excluded.map_id,
+      map_key=excluded.map_key,
+      map_name=excluded.map_name,
+      map_version=excluded.map_version,
+      map_hash_sha256=excluded.map_hash_sha256,
+      vehicle_type=excluded.vehicle_type,
+      game_mode=excluded.game_mode,
+      race_seed=excluded.race_seed,
+      track_length_m=excluded.track_length_m,
+      started_at_ms=excluded.started_at_ms,
+      ended_at_ms=excluded.ended_at_ms,
+      winner_user_id=excluded.winner_user_id,
+      client_version=excluded.client_version,
+      unity_version=excluded.unity_version,
+      updated_at_ms=excluded.updated_at_ms
+  `
+    : `
     INSERT INTO competitions (
       competition_uuid,
       streamer_user_id,
@@ -310,30 +379,52 @@ export async function onRequest(context) {
       updated_at_ms=excluded.updated_at_ms
   `;
 
-  await env.VF_D1_STATS
-    .prepare(upsertCompetitionSql)
-    .bind(
-      competitionUuid,
-      streamerUserId,
-      streamerLogin,
-      seasonId,
-      trackId,
-      trackName,
-      trackVersion,
-      trackHashSha256,
-      vehicleType,
-      gameMode,
-      raceSeed,
-      trackLengthM,
-      Math.trunc(startedAtMs),
-      Math.trunc(endedAtMs),
-      winnerUserId,
-      clientVersion,
-      unityVersion,
-      createdAtMs,
-      updatedAtMs,
-    )
-    .run();
+  const bindArgs = hasMapKeyCol
+    ? [
+        competitionUuid,
+        streamerUserId,
+        streamerLogin,
+        seasonId,
+        trackIdInt,
+        trackKey,
+        trackName,
+        trackVersion,
+        trackHashSha256,
+        vehicleType,
+        gameMode,
+        raceSeed,
+        trackLengthM,
+        Math.trunc(startedAtMs),
+        Math.trunc(endedAtMs),
+        winnerUserId,
+        clientVersion,
+        unityVersion,
+        createdAtMs,
+        updatedAtMs,
+      ]
+    : [
+        competitionUuid,
+        streamerUserId,
+        streamerLogin,
+        seasonId,
+        trackIdInt,
+        trackName,
+        trackVersion,
+        trackHashSha256,
+        vehicleType,
+        gameMode,
+        raceSeed,
+        trackLengthM,
+        Math.trunc(startedAtMs),
+        Math.trunc(endedAtMs),
+        winnerUserId,
+        clientVersion,
+        unityVersion,
+        createdAtMs,
+        updatedAtMs,
+      ];
+
+  await env.VF_D1_STATS.prepare(upsertCompetitionSql).bind(...bindArgs).run();
 
   const compRow = await env.VF_D1_STATS
     .prepare("SELECT id FROM competitions WHERE competition_uuid = ?")

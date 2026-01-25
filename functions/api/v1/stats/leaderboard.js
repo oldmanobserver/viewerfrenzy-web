@@ -127,7 +127,9 @@ function buildWhereAndParams(url, { includeBots = false, hasBotFlag = false } = 
   // Bots are excluded by default.
   // If the DB hasn't been upgraded yet (no is_bot column), we simply can't filter.
   if (!includeBots && hasBotFlag) {
-    where.push("r.is_bot = 0");
+    // Older rows can have NULL in is_bot (before the column existed / before backfill).
+    // Treat NULL as non-bot.
+    where.push("COALESCE(r.is_bot, 0) = 0");
   }
 
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
