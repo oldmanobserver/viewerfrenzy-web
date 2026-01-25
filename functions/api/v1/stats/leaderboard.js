@@ -119,7 +119,7 @@ function buildWhereAndParams(url, { includeBots = false, hasBotFlag = false } = 
   const mapSearch = normSearch(url.searchParams.get("mapSearch"));
   if (mapSearch) {
     where.push(
-      "(LOWER(COALESCE(c.map_id,'')) LIKE ? OR LOWER(COALESCE(c.map_name,'')) LIKE ?)",
+      "(LOWER(COALESCE(CAST(c.map_id AS TEXT),'')) LIKE ? OR LOWER(COALESCE(c.map_name,'')) LIKE ?)",
     );
     params.push(`%${mapSearch}%`, `%${mapSearch}%`);
   }

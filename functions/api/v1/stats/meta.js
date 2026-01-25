@@ -75,11 +75,11 @@ export async function onRequest(context) {
     // If a vehicleType filter is supplied, only return maps with competitions in that mode.
     const mapSql = `
       SELECT
-        map_id AS trackId,
-        COALESCE(NULLIF(MAX(COALESCE(map_name, '')), ''), map_id) AS trackName,
+        CAST(map_id AS TEXT) AS trackId,
+        COALESCE(NULLIF(MAX(COALESCE(map_name, '')), ''), CAST(map_id AS TEXT)) AS trackName,
         COUNT(*) AS competitions
       FROM competitions
-      WHERE map_id IS NOT NULL AND TRIM(map_id) <> ''
+      WHERE map_id IS NOT NULL AND TRIM(CAST(map_id AS TEXT)) <> ''
         ${vehicleType ? "AND LOWER(TRIM(vehicle_type)) = ?" : ""}
       GROUP BY map_id
       ORDER BY LOWER(trackName) ASC;

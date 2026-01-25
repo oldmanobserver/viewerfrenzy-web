@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS competitions (
 
   season_id TEXT,
 
-  map_id TEXT,
+  map_id INTEGER,
   map_name TEXT,
   map_version INTEGER,
   map_hash_sha256 TEXT,
@@ -44,6 +44,28 @@ CREATE TABLE IF NOT EXISTS competitions (
 
 CREATE INDEX IF NOT EXISTS idx_competitions_streamer ON competitions(streamer_user_id, started_at_ms);
 CREATE INDEX IF NOT EXISTS idx_competitions_season ON competitions(season_id, started_at_ms);
+
+-- ---------------------------------------------------------------------------
+-- Cloud Maps (Tracks)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS vf_maps (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  map_json TEXT NOT NULL,
+  map_version INTEGER,
+  map_hash_sha256 TEXT,
+  vehicle_type TEXT,
+  game_mode TEXT,
+  created_by_user_id TEXT NOT NULL,
+  created_by_login TEXT,
+  created_at_ms INTEGER NOT NULL,
+  updated_at_ms INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_vf_maps_name ON vf_maps(name);
+CREATE INDEX IF NOT EXISTS idx_vf_maps_updated ON vf_maps(updated_at_ms, id);
+
 
 CREATE TABLE IF NOT EXISTS competition_results (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
