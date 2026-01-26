@@ -99,6 +99,19 @@ export async function onRequest(context) {
   const vehicleType = toStr(map?.vehicleType);
   const gameMode = toStr(map?.gameMode);
 
+  // Optional map preview images (PNG base64). Older clients won't send these.
+  const thumbPngBase64 = toStr(map?.thumbPngBase64);
+  const imagePngBase64 = toStr(map?.imagePngBase64);
+
+  const thumbPngBytes = decodePngBase64(thumbPngBase64, 600_000);
+  if (thumbPngBytes?.error)
+    return jsonResponse(request, { ok: false, error: "bad_thumb", message: thumbPngBytes.error }, 400);
+
+  const imagePngBytes = decodePngBase64(imagePngBase64, 3_000_000);
+  if (imagePngBytes?.error)
+    return jsonResponse(request, { ok: false, error: "bad_image", message: imagePngBytes.error }, 400);
+
+
   const now = nowMs();
 
   // Enforce unique name (case-insensitive)
@@ -154,6 +167,9 @@ export async function onRequest(context) {
       )
       .bind(name, json, mapVersion, mapHash, vehicleType, gameMode, now, id)
       .run();
+
+    // Save/replace preview images (if provided)
+    await tryUpdateMapImages(db, id, thumbPngBytes?.bytes, imagePngBytes?.bytes);
 
     let updated = null;
     try {
@@ -232,6 +248,9 @@ export async function onRequest(context) {
 
   const newId = Number(ins?.meta?.last_row_id || 0) || 0;
 
+  // Save preview images (if provided)
+  await tryUpdateMapImages(db, newId, thumbPngBytes?.bytes, imagePngBytes?.bytes);
+
   let created = null;
   try {
     created = await db
@@ -266,4 +285,65 @@ export async function onRequest(context) {
       deleted: toBool(created?.deleted),
     },
   });
+}
+
+function decodePngBase64(value, maxBytes) {
+  if (!value) return { bytes: null };
+
+  // Allow either plain base64 or a data URL.
+  let b64 = value.trim();
+  const dataPrefix = "data:image/png;base64,";
+  if (b64.toLowerCase().startsWith(dataPrefix))
+    b64 = b64.slice(dataPrefix.length).trim();
+
+  // Basic sanity check.
+  if (b64.length < 16) return { bytes: null };
+
+  let raw = null;
+  try {
+    raw = atob(b64);
+  } catch {
+    return { bytes: null, error: "Invalid base64 image data." };
+  }
+
+  const len = raw.length;
+  if (maxBytes && len > maxBytes) return { bytes: null, error: `Image too large (${len} bytes).` };
+
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) bytes[i] = raw.charCodeAt(i);
+
+  // PNG signature check (89 50 4E 47 0D 0A 1A 0A)
+  if (len >= 8) {
+    const sig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+    for (let i = 0; i < sig.length; i++) {
+      if (bytes[i] !== sig[i]) return { bytes: null, error: "Image must be a PNG." };
+    }
+  }
+
+  return { bytes };
+}
+
+async function tryUpdateMapImages(db, mapId, thumbBytes, imageBytes) {
+  if (!mapId) return;
+  const sets = [];
+  const binds = [];
+
+  if (thumbBytes && thumbBytes.byteLength > 0) {
+    sets.push("thumb_png = ?");
+    binds.push(thumbBytes);
+  }
+
+  if (imageBytes && imageBytes.byteLength > 0) {
+    sets.push("image_png = ?");
+    binds.push(imageBytes);
+  }
+
+  if (!sets.length) return;
+
+  try {
+    await db.prepare(`UPDATE vf_maps SET ${sets.join(", ")} WHERE id = ?`).bind(...binds, mapId).run();
+  } catch (e) {
+    // DB not migrated yet (no columns) -> ignore for backward compatibility.
+    if (!isNoSuchColumnError(e, "thumb_png") && !isNoSuchColumnError(e, "image_png")) throw e;
+  }
 }
