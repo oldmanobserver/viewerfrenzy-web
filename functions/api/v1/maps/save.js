@@ -23,7 +23,7 @@
 import { handleOptions } from "../../../_lib/cors.js";
 import { jsonResponse } from "../../../_lib/response.js";
 import { requireWebsiteUser } from "../../../_lib/twitchAuth.js";
-import { nowMs, tableExists, toStr } from "../../../_lib/dbUtil.js";
+import { nowMs, tableExists, toStr, toBool } from "../../../_lib/dbUtil.js";
 
 function toInt(v, def = 0) {
   const n = Number(v);
@@ -32,6 +32,12 @@ function toInt(v, def = 0) {
 
 function isNonEmptyString(s) {
   return typeof s === "string" && s.trim().length > 0;
+}
+
+function isNoSuchColumnError(e, colName) {
+  const msg = String(e?.message || e || "").toLowerCase();
+  const c = String(colName || "").toLowerCase();
+  return msg.includes("no such column") && (!c || msg.includes(c));
 }
 
 export async function onRequest(context) {
@@ -98,21 +104,44 @@ export async function onRequest(context) {
   // Enforce unique name (case-insensitive)
   // For updates, allow keeping same name.
   if (id > 0) {
-    const existing = await db
-      .prepare("SELECT id, name, created_by_user_id, created_by_login, created_at_ms, updated_at_ms FROM vf_maps WHERE id = ? LIMIT 1")
-      .bind(id)
-      .first();
+    let existing = null;
+    try {
+      existing = await db
+        .prepare("SELECT id, name, created_by_user_id, created_by_login, created_at_ms, updated_at_ms, deleted FROM vf_maps WHERE id = ? LIMIT 1")
+        .bind(id)
+        .first();
+    } catch (e) {
+      // Back-compat: DB hasn't run migration v0.15 yet.
+      if (!isNoSuchColumnError(e, "deleted")) throw e;
+      existing = await db
+        .prepare("SELECT id, name, created_by_user_id, created_by_login, created_at_ms, updated_at_ms FROM vf_maps WHERE id = ? LIMIT 1")
+        .bind(id)
+        .first();
+    }
 
     if (!existing)
       return jsonResponse(request, { ok: false, error: "not_found", message: `Map ${id} not found.` }, 404);
 
-  if (toStr(existing?.created_by_user_id) !== toStr(authUser?.userId))
+    // If soft-deleted, treat as gone (do not allow updates).
+    if (toBool(existing?.deleted))
+      return jsonResponse(request, { ok: false, error: "deleted", message: `Map ${id} has been deleted.` }, 410);
+
+    if (toStr(existing?.created_by_user_id) !== toStr(authUser?.userId))
       return jsonResponse(request, { ok: false, error: "not_owner", message: "You do not own this map." }, 403);
 
-    const clash = await db
-      .prepare("SELECT id FROM vf_maps WHERE lower(name) = lower(?) AND id <> ? LIMIT 1")
-      .bind(name, id)
-      .first();
+    let clash = null;
+    try {
+      clash = await db
+        .prepare("SELECT id FROM vf_maps WHERE lower(name) = lower(?) AND id <> ? AND deleted = 0 LIMIT 1")
+        .bind(name, id)
+        .first();
+    } catch (e) {
+      if (!isNoSuchColumnError(e, "deleted")) throw e;
+      clash = await db
+        .prepare("SELECT id FROM vf_maps WHERE lower(name) = lower(?) AND id <> ? LIMIT 1")
+        .bind(name, id)
+        .first();
+    }
 
     if (clash)
       return jsonResponse(request, { ok: false, error: "name_taken", message: "A map with that name already exists." }, 409);
@@ -126,12 +155,23 @@ export async function onRequest(context) {
       .bind(name, json, mapVersion, mapHash, vehicleType, gameMode, now, id)
       .run();
 
-    const updated = await db
-      .prepare(
-        "SELECT id, name, map_version, map_hash_sha256, vehicle_type, game_mode, created_by_user_id, created_by_login, created_at_ms, updated_at_ms FROM vf_maps WHERE id = ? LIMIT 1",
-      )
-      .bind(id)
-      .first();
+    let updated = null;
+    try {
+      updated = await db
+        .prepare(
+          "SELECT id, name, map_version, map_hash_sha256, vehicle_type, game_mode, created_by_user_id, created_by_login, created_at_ms, updated_at_ms, deleted FROM vf_maps WHERE id = ? LIMIT 1",
+        )
+        .bind(id)
+        .first();
+    } catch (e) {
+      if (!isNoSuchColumnError(e, "deleted")) throw e;
+      updated = await db
+        .prepare(
+          "SELECT id, name, map_version, map_hash_sha256, vehicle_type, game_mode, created_by_user_id, created_by_login, created_at_ms, updated_at_ms FROM vf_maps WHERE id = ? LIMIT 1",
+        )
+        .bind(id)
+        .first();
+    }
 
     return jsonResponse(request, {
       ok: true,
@@ -146,15 +186,25 @@ export async function onRequest(context) {
         createdByLogin: toStr(updated?.created_by_login),
         createdAtMs: Number(updated?.created_at_ms || 0) || 0,
         updatedAtMs: Number(updated?.updated_at_ms || 0) || 0,
+        deleted: toBool(updated?.deleted),
       },
     });
   }
 
   // Create
-  const clash = await db
-    .prepare("SELECT id FROM vf_maps WHERE lower(name) = lower(?) LIMIT 1")
-    .bind(name)
-    .first();
+  let clash = null;
+  try {
+    clash = await db
+      .prepare("SELECT id FROM vf_maps WHERE lower(name) = lower(?) AND deleted = 0 LIMIT 1")
+      .bind(name)
+      .first();
+  } catch (e) {
+    if (!isNoSuchColumnError(e, "deleted")) throw e;
+    clash = await db
+      .prepare("SELECT id FROM vf_maps WHERE lower(name) = lower(?) LIMIT 1")
+      .bind(name)
+      .first();
+  }
 
   if (clash)
     return jsonResponse(request, { ok: false, error: "name_taken", message: "A map with that name already exists." }, 409);
@@ -182,12 +232,23 @@ export async function onRequest(context) {
 
   const newId = Number(ins?.meta?.last_row_id || 0) || 0;
 
-  const created = await db
-    .prepare(
-      "SELECT id, name, map_version, map_hash_sha256, vehicle_type, game_mode, created_by_user_id, created_by_login, created_at_ms, updated_at_ms FROM vf_maps WHERE id = ? LIMIT 1",
-    )
-    .bind(newId)
-    .first();
+  let created = null;
+  try {
+    created = await db
+      .prepare(
+        "SELECT id, name, map_version, map_hash_sha256, vehicle_type, game_mode, created_by_user_id, created_by_login, created_at_ms, updated_at_ms, deleted FROM vf_maps WHERE id = ? LIMIT 1",
+      )
+      .bind(newId)
+      .first();
+  } catch (e) {
+    if (!isNoSuchColumnError(e, "deleted")) throw e;
+    created = await db
+      .prepare(
+        "SELECT id, name, map_version, map_hash_sha256, vehicle_type, game_mode, created_by_user_id, created_by_login, created_at_ms, updated_at_ms FROM vf_maps WHERE id = ? LIMIT 1",
+      )
+      .bind(newId)
+      .first();
+  }
 
   return jsonResponse(request, {
     ok: true,
@@ -202,6 +263,7 @@ export async function onRequest(context) {
       createdByLogin: toStr(created?.created_by_login),
       createdAtMs: Number(created?.created_at_ms || 0) || 0,
       updatedAtMs: Number(created?.updated_at_ms || 0) || 0,
+      deleted: toBool(created?.deleted),
     },
   });
 }

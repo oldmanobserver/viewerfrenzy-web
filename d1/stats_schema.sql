@@ -60,11 +60,18 @@ CREATE TABLE IF NOT EXISTS vf_maps (
   created_by_user_id TEXT NOT NULL,
   created_by_login TEXT,
   created_at_ms INTEGER NOT NULL,
-  updated_at_ms INTEGER NOT NULL
+  updated_at_ms INTEGER NOT NULL,
+  source TEXT NOT NULL DEFAULT 'community',
+  deleted INTEGER NOT NULL DEFAULT 0
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_vf_maps_name ON vf_maps(name);
+-- Unique names for ACTIVE maps only (case-insensitive).
+-- This allows deleted maps to keep their row for stats/history while freeing the name.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_vf_maps_name_active_ci ON vf_maps(lower(name)) WHERE deleted = 0;
+
 CREATE INDEX IF NOT EXISTS idx_vf_maps_updated ON vf_maps(updated_at_ms, id);
+CREATE INDEX IF NOT EXISTS idx_vf_maps_source ON vf_maps(source);
+CREATE INDEX IF NOT EXISTS idx_vf_maps_deleted ON vf_maps(deleted, updated_at_ms, id);
 
 
 CREATE TABLE IF NOT EXISTS competition_results (

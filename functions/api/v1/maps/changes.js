@@ -35,6 +35,12 @@ function toInt(v, def = 0) {
   return Number.isFinite(n) ? Math.trunc(n) : def;
 }
 
+function isNoSuchColumnError(e, colName) {
+  const msg = String(e?.message || e || "").toLowerCase();
+  const c = String(colName || "").toLowerCase();
+  return msg.includes("no such column") && (!c || msg.includes(c));
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
 
@@ -78,17 +84,38 @@ export async function onRequest(context) {
     "created_by_login",
     "created_at_ms",
     "updated_at_ms",
+    "deleted",
   ];
 
-  if (includeJson) cols.push("map_json AS json");
+  // If a map is deleted, we intentionally do not return JSON payloads (bandwidth + not needed).
+  if (includeJson) cols.push("CASE WHEN deleted = 0 THEN map_json ELSE '' END AS json");
 
   const where = since > 0 ? "WHERE updated_at_ms > ?" : "";
 
   const stmt = `SELECT ${cols.join(", ")} FROM vf_maps ${where} ORDER BY updated_at_ms ASC, id ASC LIMIT ?`;
 
-  const rs = since > 0
-    ? await db.prepare(stmt).bind(since, limit).all()
-    : await db.prepare(stmt).bind(limit).all();
+  let rs;
+  try {
+    rs = since > 0
+      ? await db.prepare(stmt).bind(since, limit).all()
+      : await db.prepare(stmt).bind(limit).all();
+  } catch (e) {
+    // Back-compat for DBs that haven't run migration v0.15 yet.
+    if (!isNoSuchColumnError(e, "deleted")) throw e;
+
+    const colsLegacy = cols.filter((c) => c !== "deleted");
+    if (includeJson) {
+      // Replace CASE expr with direct json alias for legacy DBs.
+      const idx = colsLegacy.findIndex((c) => c.startsWith("CASE "));
+      if (idx >= 0) colsLegacy.splice(idx, 1);
+      colsLegacy.push("map_json AS json");
+    }
+
+    const stmtLegacy = `SELECT ${colsLegacy.join(", ")} FROM vf_maps ${where} ORDER BY updated_at_ms ASC, id ASC LIMIT ?`;
+    rs = since > 0
+      ? await db.prepare(stmtLegacy).bind(since, limit).all()
+      : await db.prepare(stmtLegacy).bind(limit).all();
+  }
 
   const rows = Array.isArray(rs?.results) ? rs.results : [];
 
@@ -103,6 +130,7 @@ export async function onRequest(context) {
     createdByLogin: toStr(r?.created_by_login),
     createdAtMs: Number(r?.created_at_ms || 0) || 0,
     updatedAtMs: Number(r?.updated_at_ms || 0) || 0,
+    deleted: toBool(r?.deleted),
     json: includeJson ? (typeof r?.json === "string" ? r.json : "") : undefined,
   }));
 
