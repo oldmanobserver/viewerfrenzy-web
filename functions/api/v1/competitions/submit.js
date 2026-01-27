@@ -35,6 +35,113 @@ async function hasIsBotColumn(db) {
   }
 }
 
+// Cached check: does D1 have vf_maps.finish_time_ms?
+let __hasMapFinishTimeCol = null;
+let __hasMapFinishTimeColCheckedAtMs = 0;
+
+function isNoSuchColumnError(e, colName) {
+  const msg = String(e?.message || e || "").toLowerCase();
+  const c = String(colName || "").toLowerCase();
+  return msg.includes("no such column") && (!c || msg.includes(c));
+}
+
+async function hasMapFinishTimeColumn(db) {
+  if (!db) return false;
+  const now = Date.now();
+  if (__hasMapFinishTimeCol !== null && now - __hasMapFinishTimeColCheckedAtMs < 60_000) return __hasMapFinishTimeCol;
+
+  try {
+    const rs = await db.prepare("PRAGMA table_info('vf_maps')").all();
+    const cols = Array.isArray(rs?.results) ? rs.results : [];
+    const has = cols.some((c) => String(c?.name || "").toLowerCase() === "finish_time_ms");
+    __hasMapFinishTimeCol = has;
+    __hasMapFinishTimeColCheckedAtMs = now;
+    return has;
+  } catch {
+    __hasMapFinishTimeCol = false;
+    __hasMapFinishTimeColCheckedAtMs = now;
+    return false;
+  }
+}
+
+async function recomputeAndUpdateMapFinishTimeMs(db, mapId) {
+  if (!db || !mapId) return { ok: false, reason: "missing_args" };
+
+  // If the column doesn't exist yet, skip quietly (older deployments).
+  if (!(await hasMapFinishTimeColumn(db))) return { ok: false, reason: "no_finish_time_column" };
+
+  // Fetch the current map version/hash so we only compute against the active map definition.
+  let mapRow = null;
+  try {
+    mapRow = await db
+      .prepare("SELECT map_version, map_hash_sha256 FROM vf_maps WHERE id = ? LIMIT 1")
+      .bind(mapId)
+      .first();
+  } catch {
+    return { ok: false, reason: "map_lookup_failed" };
+  }
+
+  if (!mapRow) return { ok: false, reason: "map_not_found" };
+
+  const mapHash = toStr(mapRow?.map_hash_sha256);
+  const mapVersion = toInt(mapRow?.map_version, { min: 0, max: 9999, fallback: 0 });
+
+  // Prefer hash match when available; otherwise fall back to map_version.
+  let versionWhere = "";
+  const params = [mapId];
+  if (mapHash) {
+    versionWhere = "AND c.map_hash_sha256 = ?";
+    params.push(mapHash);
+  } else if (mapVersion > 0) {
+    versionWhere = "AND c.map_version = ?";
+    params.push(mapVersion);
+  }
+
+  const hasIsBot = await hasIsBotColumn(db);
+  const botWhere = hasIsBot ? "AND r.is_bot = 0" : "";
+
+  // We define a map's "finish time" as the average winning time per competition.
+  // (Average of each competition's best FINISHED time.)
+  const sql = `
+    WITH per_comp AS (
+      SELECT c.id AS competition_id, MIN(r.finish_time_ms) AS best_time_ms
+      FROM competitions c
+      JOIN competition_results r ON r.competition_id = c.id
+      WHERE c.map_id = ?
+        ${versionWhere}
+        AND r.status = 'FINISHED'
+        AND r.finish_time_ms IS NOT NULL
+        ${botWhere}
+      GROUP BY c.id
+    )
+    SELECT AVG(best_time_ms) AS avg_best_time_ms, COUNT(*) AS sample_count
+    FROM per_comp;
+  `;
+
+  let agg = null;
+  try {
+    agg = await db.prepare(sql).bind(...params).first();
+  } catch {
+    return { ok: false, reason: "aggregate_query_failed" };
+  }
+
+  const avg = Number(agg?.avg_best_time_ms);
+  const avgMs = Number.isFinite(avg) ? Math.round(avg) : null;
+  const sampleCount = Number(agg?.sample_count || 0) || 0;
+
+  try {
+    await db
+      .prepare("UPDATE vf_maps SET finish_time_ms = ?, updated_at_ms = ? WHERE id = ?")
+      .bind(avgMs, nowMs(), mapId)
+      .run();
+  } catch (e) {
+    if (isNoSuchColumnError(e, "finish_time_ms")) return { ok: false, reason: "no_finish_time_column" };
+    return { ok: false, reason: "update_failed" };
+  }
+
+  return { ok: true, finishTimeMs: avgMs || 0, sampleCount };
+}
+
 function nowMs() {
   return Date.now();
 }
@@ -175,7 +282,8 @@ export async function onRequest(context) {
   if (request.method === "OPTIONS") return handleOptions(request);
 
   if (request.method !== "POST") {
-    return jsonResponse(request, { error: "method_not_allowed" }, 405);
+
+  return jsonResponse(request, { error: "method_not_allowed" }, 405);
   }
 
   const auth = await requireWebsiteUser(context);
@@ -211,16 +319,19 @@ export async function onRequest(context) {
 
   const competitionUuid = toStr(competition?.competitionUuid);
   if (!competitionUuid) {
-    return jsonResponse(request, { error: "competition_uuid_required" }, 400);
+
+  return jsonResponse(request, { error: "competition_uuid_required" }, 400);
   }
 
   const startedAtMs = Number(competition?.startedAtMs);
   const endedAtMs = Number(competition?.endedAtMs);
   if (!Number.isFinite(startedAtMs) || startedAtMs <= 0) {
-    return jsonResponse(request, { error: "started_at_required" }, 400);
+
+  return jsonResponse(request, { error: "started_at_required" }, 400);
   }
   if (!Number.isFinite(endedAtMs) || endedAtMs <= 0 || endedAtMs < startedAtMs) {
-    return jsonResponse(request, { error: "ended_at_invalid" }, 400);
+
+  return jsonResponse(request, { error: "ended_at_invalid" }, 400);
   }
 
   const vehicleType = toStr(competition?.vehicleType) || "";
@@ -270,7 +381,8 @@ export async function onRequest(context) {
   const streamerLogin = toStr(auth?.user?.login);
 
   if (!streamerUserId) {
-    return jsonResponse(request, { error: "auth_missing_user_id" }, 401);
+
+  return jsonResponse(request, { error: "auth_missing_user_id" }, 401);
   }
 
   const createdAtMs = nowMs();
@@ -607,6 +719,18 @@ export async function onRequest(context) {
   } catch {
     achievementsUnlocked = [];
   }
+
+  // Update cached map finish time on vf_maps (best-effort).
+  // This allows Unity clients to display "Avg Finish Time" from the local map cache.
+  try {
+    if (trackIdInt !== null && trackIdInt > 0) {
+      await recomputeAndUpdateMapFinishTimeMs(env.VF_D1_STATS, trackIdInt);
+    }
+  } catch {
+    // Ignore failures to avoid breaking competition submissions.
+  }
+
+
 
   return jsonResponse(request, {
     ok: true,

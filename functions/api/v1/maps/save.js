@@ -168,6 +168,9 @@ export async function onRequest(context) {
       .bind(name, json, mapVersion, mapHash, vehicleType, gameMode, now, id)
       .run();
 
+    // Map JSON changed -> reset cached finish time (it will be recomputed after new competitions are posted).
+    await tryResetMapFinishTimeMs(db, id);
+
     // Save/replace preview images (if provided)
     await tryUpdateMapImages(db, id, thumbPngBytes?.bytes, imagePngBytes?.bytes);
 
@@ -189,6 +192,8 @@ export async function onRequest(context) {
         .first();
     }
 
+    const finishTimeMs = await safeSelectFinishTimeMs(db, id);
+
     return jsonResponse(request, {
       ok: true,
       map: {
@@ -202,6 +207,7 @@ export async function onRequest(context) {
         createdByLogin: toStr(updated?.created_by_login),
         createdAtMs: Number(updated?.created_at_ms || 0) || 0,
         updatedAtMs: Number(updated?.updated_at_ms || 0) || 0,
+        finishTimeMs,
         deleted: toBool(updated?.deleted),
       },
     });
@@ -269,6 +275,8 @@ export async function onRequest(context) {
       .first();
   }
 
+  const finishTimeMs = await safeSelectFinishTimeMs(db, newId);
+
   return jsonResponse(request, {
     ok: true,
     map: {
@@ -282,9 +290,32 @@ export async function onRequest(context) {
       createdByLogin: toStr(created?.created_by_login),
       createdAtMs: Number(created?.created_at_ms || 0) || 0,
       updatedAtMs: Number(created?.updated_at_ms || 0) || 0,
+      finishTimeMs,
       deleted: toBool(created?.deleted),
     },
   });
+}
+
+async function safeSelectFinishTimeMs(db, mapId) {
+  if (!db || !mapId) return 0;
+  try {
+    const row = await db.prepare("SELECT finish_time_ms FROM vf_maps WHERE id = ? LIMIT 1").bind(mapId).first();
+    return Number(row?.finish_time_ms || 0) || 0;
+  } catch (e) {
+    // Back-compat: DB hasn't run migration v0.17 yet.
+    if (isNoSuchColumnError(e, "finish_time_ms")) return 0;
+    throw e;
+  }
+}
+
+async function tryResetMapFinishTimeMs(db, mapId) {
+  if (!db || !mapId) return;
+  try {
+    await db.prepare("UPDATE vf_maps SET finish_time_ms = NULL WHERE id = ?").bind(mapId).run();
+  } catch (e) {
+    // Back-compat: DB hasn't run migration v0.17 yet.
+    if (!isNoSuchColumnError(e, "finish_time_ms")) throw e;
+  }
 }
 
 function decodePngBase64(value, maxBytes) {

@@ -102,6 +102,7 @@ export async function onRequest(context) {
   // Back-compat flags (older DBs may not have these columns yet).
   let hasDeleted = true; // v0.15+
   let hasSource = true;  // v0.14+
+  let hasFinishTime = true; // v0.17+
 
   async function runQuery() {
     const cols = [
@@ -116,6 +117,8 @@ export async function onRequest(context) {
       "created_at_ms",
       "updated_at_ms",
     ];
+
+    if (hasFinishTime) cols.push("finish_time_ms");
 
     if (hasSource) cols.push("source");
     if (hasDeleted) cols.push("deleted");
@@ -161,6 +164,10 @@ export async function onRequest(context) {
         hasSource = false;
         return await runQuery();
       }
+      if (hasFinishTime && isNoSuchColumnError(e, "finish_time_ms")) {
+        hasFinishTime = false;
+        return await runQuery();
+      }
       throw e;
     }
   }
@@ -180,6 +187,7 @@ export async function onRequest(context) {
     createdByLogin: toStr(r?.created_by_login),
     createdAtMs: Number(r?.created_at_ms || 0) || 0,
     updatedAtMs: Number(r?.updated_at_ms || 0) || 0,
+    finishTimeMs: hasFinishTime ? (Number(r?.finish_time_ms || 0) || 0) : 0,
     deleted: hasDeleted ? toBool(r?.deleted) : false,
     json: includeJson ? (typeof r?.json === "string" ? r.json : "") : undefined,
   }));
