@@ -98,36 +98,68 @@ async function recomputeAndUpdateMapFinishTimeMs(db, mapId) {
   }
 
   const hasIsBot = await hasIsBotColumn(db);
-  const botWhere = hasIsBot ? "AND r.is_bot = 0" : "";
 
   // We define a map's "finish time" as the average winning time per competition.
   // (Average of each competition's best FINISHED time.)
-  const sql = `
-    WITH per_comp AS (
-      SELECT c.id AS competition_id, MIN(r.finish_time_ms) AS best_time_ms
-      FROM competitions c
-      JOIN competition_results r ON r.competition_id = c.id
-      WHERE c.map_id = ?
-        ${versionWhere}
-        AND r.status = 'FINISHED'
-        AND r.finish_time_ms IS NOT NULL
-        ${botWhere}
-      GROUP BY c.id
-    )
-    SELECT AVG(best_time_ms) AS avg_best_time_ms, COUNT(*) AS sample_count
-    FROM per_comp;
-  `;
+  //
+  // Prefer *non-bot* results when they exist; if a map has only bot races so far,
+  // fall back to including bots so new maps can still get a reasonable baseline.
+  async function queryAgg({ excludeBots } = { excludeBots: true }) {
+    const botWhere = excludeBots && hasIsBot ? "AND r.is_bot = 0" : "";
+
+    const sql = `
+      WITH per_comp AS (
+        SELECT c.id AS competition_id, MIN(r.finish_time_ms) AS best_time_ms
+        FROM competitions c
+        JOIN competition_results r ON r.competition_id = c.id
+        WHERE c.map_id = ?
+          ${versionWhere}
+          AND r.status = 'FINISHED'
+          AND r.finish_time_ms IS NOT NULL
+          ${botWhere}
+        GROUP BY c.id
+      )
+      SELECT AVG(best_time_ms) AS avg_best_time_ms, COUNT(*) AS sample_count
+      FROM per_comp;
+    `;
+
+    return await db.prepare(sql).bind(...params).first();
+  }
 
   let agg = null;
+  let usedBots = false;
+
   try {
-    agg = await db.prepare(sql).bind(...params).first();
+    // 1) Prefer non-bot data (real viewers)
+    agg = await queryAgg({ excludeBots: true });
+    let sc = Number(agg?.sample_count || 0) || 0;
+
+    // 2) If there are no non-bot samples and the schema supports bots,
+    //    fall back to including bots so we can still compute a baseline.
+    if (sc === 0 && hasIsBot) {
+      const aggAll = await queryAgg({ excludeBots: false });
+      const scAll = Number(aggAll?.sample_count || 0) || 0;
+      if (scAll > 0) {
+        agg = aggAll;
+        usedBots = true;
+        sc = scAll;
+      }
+    }
   } catch {
     return { ok: false, reason: "aggregate_query_failed" };
   }
 
   const avg = Number(agg?.avg_best_time_ms);
+
   const avgMs = Number.isFinite(avg) ? Math.round(avg) : null;
   const sampleCount = Number(agg?.sample_count || 0) || 0;
+
+  if (sampleCount <= 0 || avgMs === null) {
+    // No usable samples (e.g., all DNF). On competition submit we avoid overwriting an existing
+    // cached finish time with NULL/0. Admin can still explicitly reset via Recalculate.
+    return { ok: false, reason: "no_samples" };
+  }
+
 
   try {
     await db
@@ -139,7 +171,7 @@ async function recomputeAndUpdateMapFinishTimeMs(db, mapId) {
     return { ok: false, reason: "update_failed" };
   }
 
-  return { ok: true, finishTimeMs: avgMs || 0, sampleCount };
+  return { ok: true, finishTimeMs: avgMs || 0, sampleCount, usedBots };
 }
 
 function nowMs() {
