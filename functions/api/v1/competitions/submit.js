@@ -753,15 +753,40 @@ export async function onRequest(context) {
     achievementsUnlocked = [];
   }
 
+  // Map finish time cache info (vf_maps.finish_time_ms). This is returned so the Unity client can update its
+  // local map cache immediately after a submit (without requiring a re-login/sync).
+  let finishTimeMs = 0;
+  let mapUpdatedAtMs = 0;
+  let finishTimeRecomputed = false;
+  let finishTimeSampleCount = 0;
+  let finishTimeUsedBots = false;
+
   // Update cached map finish time on vf_maps (best-effort).
   // This allows Unity clients to display "Avg Finish Time" from the local map cache.
   try {
     if (trackIdInt !== null && trackIdInt > 0) {
-      await recomputeAndUpdateMapFinishTimeMs(env.VF_D1_STATS, trackIdInt);
+      const r = await recomputeAndUpdateMapFinishTimeMs(env.VF_D1_STATS, trackIdInt);
+      if (r && r.ok) {
+        finishTimeRecomputed = true;
+        finishTimeSampleCount = Number(r.sampleCount || 0) || 0;
+        finishTimeUsedBots = !!r.usedBots;
+      }
+
+      // Read the authoritative cached value from vf_maps (even if the recompute returned ok:false).
+      if (await hasMapFinishTimeColumn(env.VF_D1_STATS)) {
+        const row = await env.VF_D1_STATS
+          .prepare("SELECT finish_time_ms, updated_at_ms FROM vf_maps WHERE id = ? LIMIT 1")
+          .bind(trackIdInt)
+          .first();
+
+        finishTimeMs = Number(row?.finish_time_ms || 0) || 0;
+        mapUpdatedAtMs = Number(row?.updated_at_ms || 0) || 0;
+      }
     }
   } catch {
     // Ignore failures to avoid breaking competition submissions.
   }
+
 
 
 
@@ -770,6 +795,16 @@ export async function onRequest(context) {
     competitionUuid,
     seasonId,
     competitionId,
+
+    // Map finish time cache info (vf_maps.finish_time_ms)
+    trackId: trackIdRaw || "",
+    mapId: trackIdInt || 0,
+    finishTimeMs,
+    mapUpdatedAtMs,
+    finishTimeRecomputed,
+    finishTimeSampleCount,
+    finishTimeUsedBots,
+
     resultsReceived: resultsRaw.length,
     resultsWritten: statements.length,
     achievementsUnlocked,
