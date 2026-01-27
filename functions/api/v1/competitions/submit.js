@@ -105,7 +105,7 @@ async function recomputeAndUpdateMapFinishTimeMs(db, mapId) {
   // Prefer *non-bot* results when they exist; if a map has only bot races so far,
   // fall back to including bots so new maps can still get a reasonable baseline.
   async function queryAgg({ excludeBots } = { excludeBots: true }) {
-    const botWhere = excludeBots && hasIsBot ? "AND r.is_bot = 0" : "";
+    const botWhere = excludeBots && hasIsBot ? "AND (r.is_bot IS NULL OR r.is_bot = 0)" : "";
 
     const sql = `
       WITH per_comp AS (
@@ -116,6 +116,7 @@ async function recomputeAndUpdateMapFinishTimeMs(db, mapId) {
           ${versionWhere}
           AND r.status = 'FINISHED'
           AND r.finish_time_ms IS NOT NULL
+          AND r.finish_time_ms > 0
           ${botWhere}
         GROUP BY c.id
       )
