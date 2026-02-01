@@ -219,6 +219,37 @@ export async function onRequest(context) {
       }
     }
 
+    // Optional: attach ViewerFrenzy custom roles (streamer-scoped) so the streamer UI
+    // can edit role membership per viewer.
+    const hasVfRoleUsers = await tableExists(db, "vf_streamer_role_users");
+    if (hasVfRoleUsers && users.length) {
+      const rr = await db
+        .prepare(
+          `SELECT user_id, role_id
+           FROM vf_streamer_role_users
+           WHERE streamer_user_id = ?`,
+        )
+        .bind(streamerUserId)
+        .all();
+
+      const roleMap = new Map();
+      for (const row of Array.isArray(rr?.results) ? rr.results : []) {
+        const uid = toStr(row?.user_id);
+        const rid = toStr(row?.role_id).toLowerCase();
+        if (!uid || !rid) continue;
+        if (!roleMap.has(uid)) roleMap.set(uid, []);
+        roleMap.get(uid).push(rid);
+      }
+
+      for (const u of users) {
+        u.vfRoles = roleMap.get(u.userId) || [];
+      }
+    } else {
+      for (const u of users) {
+        u.vfRoles = [];
+      }
+    }
+
     return jsonResponse(request, {
       ok: true,
       streamer: {

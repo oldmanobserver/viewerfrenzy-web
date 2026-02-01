@@ -475,6 +475,20 @@ select.vf-input optgroup {
   margin-top: 12px;
 }
 
+/* Two-column layout used by streamer tools (ex: Users + Selected User panel) */
+.vf-splitGrid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 12px;
+  align-items: start;
+}
+
+@media (max-width: 980px) {
+  .vf-splitGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .vf-tile {
   position: relative;
   padding: 12px;

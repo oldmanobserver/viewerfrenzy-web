@@ -165,3 +165,64 @@ export async function removeStreamerUser(viewerUserId, auth) {
   if (!id) throw new Error("viewerUserId required");
   return apiFetch(`/api/v1/streamer/users/${encodeURIComponent(id)}`, { method: "DELETE", auth });
 }
+
+// ---------------------------------------------------------------------------
+// Streamer tools: ViewerFrenzy custom roles (streamer-scoped)
+// ---------------------------------------------------------------------------
+
+export async function listStreamerVfRoles(auth) {
+  return apiFetch("/api/v1/streamer/roles", { method: "GET", auth });
+}
+
+export async function createStreamerVfRole({ roleId = "", roleName = "" } = {}, auth) {
+  return apiFetch("/api/v1/streamer/roles", {
+    method: "POST",
+    auth,
+    body: {
+      roleId,
+      roleName,
+    },
+  });
+}
+
+export async function updateStreamerVfRole(roleId, { roleName = "" } = {}, auth) {
+  const rid = String(roleId || "").trim();
+  if (!rid) throw new Error("roleId required");
+  return apiFetch(`/api/v1/streamer/roles/${encodeURIComponent(rid)}`, {
+    method: "PUT",
+    auth,
+    body: { roleName },
+  });
+}
+
+export async function deleteStreamerVfRole(roleId, auth) {
+  const rid = String(roleId || "").trim();
+  if (!rid) throw new Error("roleId required");
+  return apiFetch(`/api/v1/streamer/roles/${encodeURIComponent(rid)}`, { method: "DELETE", auth });
+}
+
+export async function bulkUpdateStreamerVfRole(roleId, { mode = "add", usersRaw = "", dryRun = true } = {}, auth) {
+  const rid = String(roleId || "").trim();
+  if (!rid) throw new Error("roleId required");
+  return apiFetch(`/api/v1/streamer/roles/${encodeURIComponent(rid)}/bulk`, {
+    method: "POST",
+    auth,
+    body: { mode, usersRaw, dryRun: !!dryRun },
+  });
+}
+
+export async function getStreamerUserVfRoles(viewerUserId, auth) {
+  const id = String(viewerUserId || "").trim();
+  if (!id) throw new Error("viewerUserId required");
+  return apiFetch(`/api/v1/streamer/user-roles/${encodeURIComponent(id)}`, { method: "GET", auth });
+}
+
+export async function setStreamerUserVfRoles(viewerUserId, roleIds = [], auth) {
+  const id = String(viewerUserId || "").trim();
+  if (!id) throw new Error("viewerUserId required");
+  return apiFetch(`/api/v1/streamer/user-roles/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    auth,
+    body: { roleIds },
+  });
+}

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+
+    <title>ViewerFrenzy – Streamer User Roles</title>
+    <meta name="description" content="ViewerFrenzy – Streamer custom roles." />
+
+    <link rel="stylesheet" href="/styles/app.css" />
+
+    <script src="/config.js" defer></script>
+    <script type="module" src="/js/page-common.js" defer></script>
+    <script type="module" src="/js/streamer-user-roles-page.js" defer></script>
+  </head>
+
+  <body data-page="streamer">
+    <header class="vf-topbar">
+      <button id="vf-menuBtn" class="vf-iconBtn" aria-label="Open menu" title="Menu" type="button">
+        <span aria-hidden="true">☰</span>
+      </button>
+
+      <div class="vf-topbarTitle" role="heading" aria-level="1">
+        <a href="/mainmenu.html" class="vf-link" style="color: inherit; text-decoration: none;">ViewerFrenzy</a>
+      </div>
+
+      <div class="vf-userChip" id="vf-userChip" hidden>
+        <img id="vf-userAvatar" class="vf-userAvatar" alt="" />
+        <div class="vf-userName" id="vf-userName">...</div>
+      </div>
+    </header>
+
+    <aside id="vf-sidenav" class="vf-sidenav" aria-hidden="true">
+      <div class="vf-sidenavHeader">
+        <div class="vf-brandSmall">
+          <div class="vf-brandMarkSmall" aria-hidden="true">VF</div>
+          <div>
+            <div class="vf-sidenavTitle">Menu</div>
+            <div class="vf-sidenavSub" id="vf-sidenavSub">Not signed in</div>
+          </div>
+        </div>
+        <button id="vf-closeMenuBtn" class="vf-iconBtn" aria-label="Close menu" title="Close" type="button">
+          <span aria-hidden="true">✕</span>
+        </button>
+      </div>
+
+      <nav class="vf-nav">
+        <a class="vf-navItem" href="/mainmenu.html" data-route="home">
+          <span class="vf-navIcon" aria-hidden="true">🏠</span>
+          <span>Home</span>
+        </a>
+
+        <a class="vf-navItem" href="/garage.html" data-route="garage">
+          <span class="vf-navIcon" aria-hidden="true">🛠️</span>
+          <span>Garage</span>
+        </a>
+
+        <a class="vf-navItem" href="/stats.html" data-route="stats">
+          <span class="vf-navIcon" aria-hidden="true">🏆</span>
+          <span>Stats</span>
+        </a>
+
+        <a class="vf-navItem" href="/streamer.html" data-route="streamer" data-requires="streamer" hidden>
+          <span class="vf-navIcon" aria-hidden="true">🎥</span>
+          <span>Streamer</span>
+        </a>
+
+        <a class="vf-navItem" href="/achievements.html" data-route="achievements">
+          <span class="vf-navIcon" aria-hidden="true">🎖️</span>
+          <span>Achievements</span>
+        </a>
+
+        <a class="vf-navItem" href="/charactercreator.html" data-route="character">
+          <span class="vf-navIcon" aria-hidden="true">🧑‍🎨</span>
+          <span>Character Creator</span>
+          <span class="vf-pill">Soon</span>
+        </a>
+
+        <a class="vf-navItem" href="/logout.html" data-route="logout">
+          <span class="vf-navIcon" aria-hidden="true">🚪</span>
+          <span>Logout</span>
+        </a>
+      </nav>
+
+      <div class="vf-sidenavFooter">
+        <div class="vf-small vf-muted">
+          API healthcheck:
+          <a class="vf-link" href="/healthcheck" target="_blank" rel="noopener">/healthcheck</a>
+        </div>
+      </div>
+    </aside>
+
+    <div id="vf-backdrop" class="vf-backdrop" hidden></div>
+
+    <main id="vf-main" class="vf-main" tabindex="-1">
+      <div class="vf-container">
+        <h1 class="vf-h1">User Roles</h1>
+
+        <div class="vf-card" style="margin-top: 12px">
+          <div class="vf-muted" style="margin-bottom: 10px">
+            Create and manage <b>custom ViewerFrenzy roles</b> for your stream.
+            These roles are separate from Twitch roles and are unique to your account.
+          </div>
+
+          <div class="vf-controlsGrid" style="margin-bottom: 10px">
+            <div class="vf-field" style="min-width: min(320px, 100%)">
+              <div class="vf-fieldLabel">Role Name</div>
+              <input id="vf-roleNameInput" class="vf-input" type="text" placeholder="example: VIP" autocomplete="off" />
+            </div>
+
+            <div class="vf-field" style="min-width: min(260px, 100%)">
+              <div class="vf-fieldLabel">Role ID (optional)</div>
+              <input id="vf-roleIdInput" class="vf-input" type="text" placeholder="example: vip" autocomplete="off" />
+            </div>
+
+            <button id="vf-createRoleBtn" class="vf-btn" type="button">Create</button>
+            <button id="vf-refreshRolesBtn" class="vf-btn" type="button">Refresh</button>
+          </div>
+
+          <div id="vf-roleMsg" class="vf-alert" hidden></div>
+
+          <div class="vf-tableWrap" style="margin-top: 10px">
+            <table class="vf-table vf-tableAuto">
+              <thead>
+                <tr>
+                  <th>Role Name</th>
+                  <th>Role ID</th>
+                  <th>Users</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="vf-rolesTbody">
+                <tr><td colspan="4" class="vf-muted">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="vf-small vf-muted" style="margin-top: 10px">
+            Tip: You can assign roles to viewers on the <a class="vf-link" href="/streamer-users.html">Streamer Users</a> page.
+          </div>
+        </div>
+
+        <div class="vf-card" style="margin-top: 12px">
+          <div class="vf-h2" style="margin: 0">Bulk Update</div>
+          <div class="vf-small vf-muted" style="margin-top: 6px">
+            Paste a list of viewers (Twitch login or numeric user id). You can use commas or new lines.
+          </div>
+
+          <div class="vf-controlsGrid" style="margin-top: 10px">
+            <div class="vf-field" style="min-width: min(320px, 100%)">
+              <div class="vf-fieldLabel">Role</div>
+              <select id="vf-bulkRoleSelect" class="vf-select">
+                <option value="">Select a role…</option>
+              </select>
+            </div>
+
+            <div class="vf-field" style="min-width: min(240px, 100%)">
+              <div class="vf-fieldLabel">Operation</div>
+              <select id="vf-bulkModeSelect" class="vf-select">
+                <option value="add">Add users to role</option>
+                <option value="remove">Delete users from role</option>
+                <option value="set">Set role to ONLY these users</option>
+              </select>
+            </div>
+
+            <button id="vf-bulkRunBtn" class="vf-btn" type="button">Run</button>
+          </div>
+
+          <div class="vf-field" style="margin-top: 10px">
+            <div class="vf-fieldLabel">Users</div>
+            <textarea
+              id="vf-bulkUsersTextarea"
+              class="vf-input"
+              placeholder="example:\nawesomeviewer\n123456789\notherviewer"
+              style="width: 100%; min-height: 160px; resize: vertical"
+            ></textarea>
+          </div>
+
+          <div id="vf-bulkMsg" class="vf-alert" style="margin-top: 10px" hidden></div>
+          <div id="vf-bulkSummary" class="vf-small vf-muted" style="margin-top: 8px" hidden></div>
+        </div>
+      </div>
+    </main>
+
+    <div id="vf-toast" class="vf-toast" hidden></div>
+  </body>
+</html>

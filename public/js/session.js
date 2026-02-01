@@ -51,19 +51,38 @@ export async function loadSession() {
 
 /**
  * Requires a session for the current page.
- * If missing/invalid, logs out and redirects to /index.html.
+ *
+ * Options:
+ * - requireAuth: if true (default), missing/invalid sessions will logout + redirect
+ * - requireStreamer: if true, non-streamer accounts will be redirected to /mainmenu.html
+ * - redirectTo: optional override for the auth redirect target
  */
-export async function requireSession() {
+export async function requireSession(
+  {
+    requireAuth = true,
+    requireStreamer = false,
+    redirectTo = "/index.html",
+  } = {},
+) {
   const s = await loadSession();
+
   if (!s) {
-    try {
-      auth.logout();
-    } catch {
-      // ignore
+    if (requireAuth) {
+      try {
+        auth.logout();
+      } catch {
+        // ignore
+      }
+      window.location.replace(`${window.location.origin}${redirectTo}`);
     }
-    window.location.replace(`${window.location.origin}/index.html`);
     return null;
   }
+
+  if (requireStreamer && !s?.me?.isStreamer) {
+    window.location.replace(`${window.location.origin}/mainmenu.html`);
+    return null;
+  }
+
   return s;
 }
 

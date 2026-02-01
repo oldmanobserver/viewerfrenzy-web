@@ -115,47 +115,103 @@
           <div id="vf-addUserMsg" class="vf-alert" hidden></div>
         </div>
 
-        <div class="vf-card" style="margin-top: 12px">
-          <div class="vf-row" style="justify-content: space-between; align-items: flex-end; gap: 10px; flex-wrap: wrap">
-            <div>
-              <div class="vf-h2" style="margin: 0">Users</div>
-              <div class="vf-small vf-muted" id="vf-userCount">Loading…</div>
-            </div>
-
-            <div class="vf-row" style="gap: 8px; align-items: flex-end; justify-content: flex-end">
-              <div class="vf-field" style="min-width: min(260px, 100%); margin: 0">
-                <div class="vf-fieldLabel">Twitch role filter</div>
-                <select id="vf-roleFilter" class="vf-select">
-                  <option value="all">All Roles</option>
-                </select>
+        <div class="vf-splitGrid" style="margin-top: 12px">
+          <div class="vf-card">
+            <div class="vf-row" style="justify-content: space-between; align-items: flex-end; gap: 10px; flex-wrap: wrap">
+              <div>
+                <div class="vf-h2" style="margin: 0">Users</div>
+                <div class="vf-small vf-muted" id="vf-userCount">Loading…</div>
               </div>
 
-              <button id="vf-syncRolesBtn" class="vf-btn vf-btnSecondary" type="button" disabled>Sync</button>
+              <div class="vf-row" style="gap: 8px; align-items: flex-end; justify-content: flex-end">
+                <div class="vf-field" style="min-width: min(260px, 100%); margin: 0">
+                  <div class="vf-fieldLabel">Twitch role filter</div>
+                  <select id="vf-roleFilter" class="vf-select">
+                    <option value="all">All Roles</option>
+                  </select>
+                </div>
+
+                <button id="vf-syncRolesBtn" class="vf-btn vf-btnSecondary" type="button" disabled>Sync</button>
+              </div>
+            </div>
+
+            <div id="vf-roleMsg" class="vf-alert" hidden></div>
+
+            <div class="vf-tableWrap" style="margin-top: 10px">
+              <table class="vf-table vf-tableAuto">
+                <thead>
+                  <tr>
+                    <th>Display Name</th>
+                    <th>Login</th>
+                    <th>User ID</th>
+                    <th>First Joined</th>
+                    <th>Last Joined</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="vf-usersTbody">
+                  <tr><td colspan="6" class="vf-muted">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="vf-small vf-muted" style="margin-top: 10px">
+              Removing a user here only removes them from <b>your</b> streamer list. It does not delete the global user record.
             </div>
           </div>
 
-          <div id="vf-roleMsg" class="vf-alert" hidden></div>
+          <div class="vf-card" id="vf-userDetailsCard">
+            <div class="vf-row" style="justify-content: space-between; align-items: flex-end; gap: 10px; flex-wrap: wrap">
+              <div>
+                <div class="vf-h2" style="margin: 0">Selected User</div>
+                <div class="vf-small vf-muted" id="vf-selectedUserSub">Select a user from the list to edit ViewerFrenzy roles.</div>
+              </div>
 
-          <div class="vf-tableWrap" style="margin-top: 10px">
-            <table class="vf-table vf-tableAuto">
-              <thead>
-                <tr>
-                  <th>Display Name</th>
-                  <th>Login</th>
-                  <th>User ID</th>
-                  <th>First Joined</th>
-                  <th>Last Joined</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="vf-usersTbody">
-                <tr><td colspan="6" class="vf-muted">Loading…</td></tr>
-              </tbody>
-            </table>
-          </div>
+              <button id="vf-clearSelectionBtn" class="vf-btn vf-btnSecondary" type="button" hidden>Clear</button>
+            </div>
 
-          <div class="vf-small vf-muted" style="margin-top: 10px">
-            Removing a user here only removes them from <b>your</b> streamer list. It does not delete the global user record.
+            <div id="vf-userRolesMsg" class="vf-alert" style="margin-top: 10px" hidden></div>
+
+            <div id="vf-selectedUserEmpty" class="vf-muted" style="margin-top: 12px">
+              Tip: You can create custom roles on the <a class="vf-link" href="/streamer-user-roles.html">User Roles</a> page.
+            </div>
+
+            <div id="vf-selectedUserBody" hidden>
+              <div class="vf-row" style="gap: 12px; align-items: center; margin-top: 12px">
+                <img id="vf-selectedUserAvatar" class="vf-userAvatar" alt="" style="width: 44px; height: 44px" />
+                <div>
+                  <div id="vf-selectedUserName" style="font-weight: 900">—</div>
+                  <div class="vf-small vf-muted" id="vf-selectedUserLogin">—</div>
+                </div>
+              </div>
+
+              <div class="vf-small" style="margin-top: 12px">
+                <div><span class="vf-muted">User ID:</span> <span id="vf-selectedUserId">—</span></div>
+                <div><span class="vf-muted">First Joined:</span> <span id="vf-selectedUserFirst">—</span></div>
+                <div><span class="vf-muted">Last Joined:</span> <span id="vf-selectedUserLast">—</span></div>
+              </div>
+
+              <div style="margin-top: 14px">
+                <div class="vf-fieldLabel">ViewerFrenzy Roles (custom)</div>
+                <div class="vf-small vf-muted" style="margin-top: 4px">
+                  A viewer can be in multiple roles. These roles are unique to your stream.
+                </div>
+
+                <div id="vf-vfRolesWrap" style="margin-top: 10px"></div>
+                <div id="vf-noVfRolesNote" class="vf-small vf-muted" style="margin-top: 8px" hidden>
+                  No custom roles yet. Create roles on the <a class="vf-link" href="/streamer-user-roles.html">User Roles</a> page.
+                </div>
+
+                <button id="vf-saveUserRolesBtn" class="vf-btn" type="button" style="margin-top: 10px" disabled>
+                  Save Roles
+                </button>
+              </div>
+
+              <div style="margin-top: 14px">
+                <div class="vf-fieldLabel">Twitch Roles (synced)</div>
+                <div id="vf-twitchRolesChips" class="vf-chipRow" style="margin-top: 8px"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
