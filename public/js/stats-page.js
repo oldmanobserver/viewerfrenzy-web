@@ -433,6 +433,18 @@ async function init() {
     loading: false,
   };
 
+  // Optional: allow deep-linking to a specific streamer.
+  // Examples:
+  //   /stats.html?streamerId=123456
+  //   /stats.html?streamerId=some_login
+  try {
+    const params = new URLSearchParams(window.location.search || "");
+    const raw = String(params.get("streamerId") || params.get("streamer") || "").trim();
+    if (raw) state.streamerId = raw;
+  } catch {
+    // ignore
+  }
+
   // Ensure we don't start sorted by a hidden column.
   ensureSortKeyVisible(state);
 
@@ -678,6 +690,21 @@ async function init() {
           return toOption(label, id);
         }),
       ].join("");
+
+      // If the caller supplied a streamerId in the URL, allow it to be either:
+      // - a numeric Twitch userId
+      // - a Twitch login
+      const wantedRaw = String(state.streamerId || "").trim();
+      if (wantedRaw && wantedRaw !== "ALL") {
+        const wantedLower = wantedRaw.toLowerCase();
+        const match = sorted.find((s) => {
+          const sid = normalizeId(s?.userId);
+          const slogin = String(s?.login || "").toLowerCase();
+          return sid === wantedRaw || slogin === wantedLower;
+        });
+        state.streamerId = match ? normalizeId(match?.userId) : "ALL";
+      }
+
       streamerSel.value = state.streamerId;
     }
 

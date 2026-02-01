@@ -131,3 +131,22 @@ export async function getMyUnlockedAchievements(auth) {
 export async function getAchievements() {
   return apiFetch("/api/v1/achievements", { method: "GET" });
 }
+
+// Authenticated: Streamer tools
+export async function listStreamerUsers(auth) {
+  return apiFetch("/api/v1/streamer/users", { method: "GET", auth });
+}
+
+export async function addStreamerUser(loginOrId, auth) {
+  return apiFetch("/api/v1/streamer/users", {
+    method: "POST",
+    auth,
+    body: { loginOrId: loginOrId ?? "" },
+  });
+}
+
+export async function removeStreamerUser(viewerUserId, auth) {
+  const id = String(viewerUserId || "").trim();
+  if (!id) throw new Error("viewerUserId required");
+  return apiFetch(`/api/v1/streamer/users/${encodeURIComponent(id)}`, { method: "DELETE", auth });
+}

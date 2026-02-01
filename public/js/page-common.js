@@ -29,6 +29,14 @@ function setActiveNav(routeName) {
   });
 }
 
+function applyStreamerGate(me) {
+  const isStreamer = !!me?.isStreamer;
+  document.querySelectorAll('[data-requires="streamer"]').forEach((el) => {
+    // Prefer the native [hidden] attribute because it's already used elsewhere.
+    el.hidden = !isStreamer;
+  });
+}
+
 async function init() {
   // Wire menu + basic UI handlers
   $("#vf-menuBtn")?.addEventListener("click", openMenu);
@@ -42,6 +50,7 @@ async function init() {
   window.VF_SESSION = session;
 
   updateUserUI(session.me);
+  applyStreamerGate(session.me);
 
   const page = document.body?.dataset?.page || "";
   if (page) setActiveNav(page);

@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark light" />
 
-    <title>ViewerFrenzy – Stats & Leaderboards</title>
-    <meta name="description" content="ViewerFrenzy stats and leaderboards." />
+    <title>ViewerFrenzy – Streamer Users</title>
+    <meta name="description" content="ViewerFrenzy – Streamer user list." />
 
     <link rel="stylesheet" href="/styles/app.css" />
 
     <script src="/config.js" defer></script>
     <script type="module" src="/js/page-common.js" defer></script>
-    <script type="module" src="/js/stats-page.js" defer></script>
+    <script type="module" src="/js/streamer-users-page.js" defer></script>
   </head>
 
-  <body data-page="stats">
+  <body data-page="streamer">
     <header class="vf-topbar">
       <button id="vf-menuBtn" class="vf-iconBtn" aria-label="Open menu" title="Menu" type="button">
         <span aria-hidden="true">☰</span>
@@ -71,7 +71,6 @@
           <span>Achievements</span>
         </a>
 
-
         <a class="vf-navItem" href="/charactercreator.html" data-route="character">
           <span class="vf-navIcon" aria-hidden="true">🧑‍🎨</span>
           <span>Character Creator</span>
@@ -96,10 +95,57 @@
 
     <main id="vf-main" class="vf-main" tabindex="-1">
       <div class="vf-container">
-        <h1 class="vf-h1">Stats & Leaderboards</h1>
-        <div id="vf-statsRoot" style="margin-top: 12px"></div>
-      </div>
+        <h1 class="vf-h1">Streamer Users</h1>
 
+        <div class="vf-card" style="margin-top: 12px">
+          <div class="vf-muted" style="margin-bottom: 10px">
+            These are viewers who have joined your competitions.
+          </div>
+
+          <div class="vf-controlsGrid" style="margin-bottom: 10px">
+            <div class="vf-field" style="min-width: min(420px, 100%)">
+              <div class="vf-fieldLabel">Add user (Twitch login or numeric user id)</div>
+              <input id="vf-addUserInput" class="vf-input" type="text" placeholder="example: someviewer" autocomplete="off" />
+            </div>
+
+            <button id="vf-addUserBtn" class="vf-btn" type="button">Add</button>
+            <button id="vf-refreshBtn" class="vf-btn" type="button">Refresh</button>
+          </div>
+
+          <div id="vf-addUserMsg" class="vf-alert" hidden></div>
+        </div>
+
+        <div class="vf-card" style="margin-top: 12px">
+          <div class="vf-row" style="justify-content: space-between; align-items: center; gap: 10px">
+            <div>
+              <div class="vf-h2" style="margin: 0">Users</div>
+              <div class="vf-small vf-muted" id="vf-userCount">Loading…</div>
+            </div>
+          </div>
+
+          <div class="vf-tableWrap" style="margin-top: 10px">
+            <table class="vf-table vf-tableAuto">
+              <thead>
+                <tr>
+                  <th>Display Name</th>
+                  <th>Login</th>
+                  <th>User ID</th>
+                  <th>First Joined</th>
+                  <th>Last Joined</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="vf-usersTbody">
+                <tr><td colspan="6" class="vf-muted">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="vf-small vf-muted" style="margin-top: 10px">
+            Removing a user here only removes them from <b>your</b> streamer list. It does not delete the global user record.
+          </div>
+        </div>
+      </div>
     </main>
 
     <div id="vf-toast" class="vf-toast" hidden></div>

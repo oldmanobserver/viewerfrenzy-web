@@ -2,6 +2,7 @@
 import { handleOptions } from "../../_lib/cors.js";
 import { jsonResponse } from "../../_lib/response.js";
 import { requireWebsiteUser } from "../../_lib/twitchAuth.js";
+import { tableExists, toStr } from "../../_lib/dbUtil.js";
 
 function normalizeUser(authUser) {
   const helix = authUser?.helixUser || null;
@@ -22,8 +23,30 @@ function normalizeUser(authUser) {
   };
 }
 
+async function hasHostedAsStreamer(env, userId) {
+  const uid = toStr(userId);
+  if (!uid) return false;
+
+  const db = env?.VF_D1_STATS;
+  if (!db) return false;
+
+  // If the stats DB isn't initialized yet, treat as not a streamer.
+  const ok = await tableExists(db, "competitions");
+  if (!ok) return false;
+
+  try {
+    const row = await db
+      .prepare("SELECT 1 AS ok FROM competitions WHERE streamer_user_id = ? LIMIT 1")
+      .bind(uid)
+      .first();
+    return !!row;
+  } catch {
+    return false;
+  }
+}
+
 export async function onRequest(context) {
-  const { request } = context;
+  const { request, env } = context;
 
   if (request.method === "OPTIONS") return handleOptions(request);
   if (request.method !== "GET") {
@@ -33,11 +56,14 @@ export async function onRequest(context) {
   const auth = await requireWebsiteUser(context);
   if (!auth.ok) return auth.response;
 
+  const user = normalizeUser(auth.user);
+  user.isStreamer = await hasHostedAsStreamer(env, user.userId);
+
   return jsonResponse(request, {
     ok: true,
 
     // preferred field for the web UI
-    user: normalizeUser(auth.user),
+    user,
 
     // keep the original payload for debugging + future needs
     twitch: auth.user,

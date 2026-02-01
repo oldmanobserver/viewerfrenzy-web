@@ -658,6 +658,12 @@ export async function onRequest(context) {
 
   const statements = [];
   const viewerIds = new Set();
+  const viewerProfiles = new Map();
+
+  // v0.20+: keep a materialized viewer->streamer join table so streamers can see
+  // who has joined their competitions.
+  const hasVfUsers = await tableExists(env.VF_D1_STATS, "vf_users");
+  const hasUserStreamerLinks = await tableExists(env.VF_D1_STATS, "vf_user_streamers");
 
   for (const r of resultsRaw) {
     if (!r) continue;
@@ -679,10 +685,23 @@ export async function onRequest(context) {
       if (!viewerLogin && /^racer\s+\d+$/i.test(uid)) isBot = true;
     }
 
-    // Only real viewers should earn achievements.
-    if (!isBot) viewerIds.add(viewerUserId);
     const displayName = toStr(r?.displayName);
     const profileImageUrl = toStr(r?.profileImageUrl);
+
+    // Only real viewers should earn achievements.
+    if (!isBot) {
+      viewerIds.add(viewerUserId);
+      // Also track this viewer so we can upsert their user record and streamer link.
+      // Skip adding the streamer to their own viewer list.
+      if (viewerUserId !== streamerUserId) {
+        viewerProfiles.set(viewerUserId, {
+          userId: viewerUserId,
+          login: viewerLogin,
+          displayName,
+          profileImageUrl,
+        });
+      }
+    }
 
     const finishPosition = toInt(r?.position, { min: 1, max: 10_000, fallback: 9999 });
 
@@ -740,6 +759,89 @@ export async function onRequest(context) {
   for (const chunk of chunkArray(statements, BATCH_SIZE)) {
     // D1 returns an array of results; ignore it for MVP.
     await env.VF_D1_STATS.batch(chunk);
+  }
+
+  // Best-effort: upsert viewer identities + viewer->streamer link table.
+  // This powers the new Streamer -> Users page on ViewerFrenzy.com.
+  try {
+    const extraStatements = [];
+
+    if (hasVfUsers) {
+      const upsertUserSql = `
+        INSERT INTO vf_users (
+          user_id,
+          login,
+          display_name,
+          profile_image_url,
+          last_seen_at_ms,
+          created_at_ms,
+          updated_at_ms
+        ) VALUES (
+          ?,?,?,?,?,?,?
+        )
+        ON CONFLICT(user_id) DO UPDATE SET
+          login=excluded.login,
+          display_name=excluded.display_name,
+          profile_image_url=excluded.profile_image_url,
+          last_seen_at_ms=MAX(vf_users.last_seen_at_ms, excluded.last_seen_at_ms),
+          updated_at_ms=excluded.updated_at_ms
+      `;
+
+      for (const v of viewerProfiles.values()) {
+        extraStatements.push(
+          env.VF_D1_STATS.prepare(upsertUserSql).bind(
+            toStr(v?.userId),
+            toLower(v?.login),
+            toStr(v?.displayName),
+            toStr(v?.profileImageUrl),
+            updatedAtMs,
+            updatedAtMs,
+            updatedAtMs,
+          ),
+        );
+      }
+    }
+
+    if (hasUserStreamerLinks) {
+      const upsertLinkSql = `
+        INSERT INTO vf_user_streamers (
+          user_id,
+          streamer_user_id,
+          streamer_login,
+          first_seen_at_ms,
+          last_seen_at_ms,
+          created_at_ms,
+          updated_at_ms
+        ) VALUES (
+          ?,?,?,?,?,?,?
+        )
+        ON CONFLICT(user_id, streamer_user_id) DO UPDATE SET
+          streamer_login=excluded.streamer_login,
+          last_seen_at_ms=MAX(vf_user_streamers.last_seen_at_ms, excluded.last_seen_at_ms),
+          updated_at_ms=excluded.updated_at_ms
+      `;
+
+      for (const v of viewerProfiles.values()) {
+        extraStatements.push(
+          env.VF_D1_STATS.prepare(upsertLinkSql).bind(
+            toStr(v?.userId),
+            streamerUserId,
+            streamerLogin,
+            updatedAtMs,
+            updatedAtMs,
+            updatedAtMs,
+            updatedAtMs,
+          ),
+        );
+      }
+    }
+
+    // Avoid massive single-batch requests.
+    for (const chunk of chunkArray(extraStatements, BATCH_SIZE)) {
+      await env.VF_D1_STATS.batch(chunk);
+    }
+  } catch {
+    // Ignore failures (migration not run yet, etc.) to avoid breaking competition submissions.
   }
 
   // Award achievements (best-effort). This is intentionally after results are written.
