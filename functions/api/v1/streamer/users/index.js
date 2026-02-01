@@ -29,17 +29,47 @@ function normalizeViewerRow(row) {
   };
 }
 
-async function hasHostedAsStreamer(env, userId) {
+async function hasStreamerViewers(env, userId) {
   const uid = toStr(userId);
   if (!uid) return false;
+
   const db = env?.VF_D1_STATS;
   if (!db) return false;
-  if (!(await tableExists(db, "competitions"))) return false;
+
+  // Prefer the materialized join table (v0.20+). This only tracks REAL viewers (bots excluded)
+  // and intentionally does not include the streamer themselves.
+  if (await tableExists(db, "vf_user_streamers")) {
+    try {
+      const row = await db
+        .prepare("SELECT 1 AS ok FROM vf_user_streamers WHERE streamer_user_id = ? LIMIT 1")
+        .bind(uid)
+        .first();
+      if (row) return true;
+    } catch {
+      // fall through
+    }
+  }
+
+  // Fallback (older DBs): require that at least one non-streamer has a result row for one
+  // of this streamer's competitions.
+  const hasCompetitions = await tableExists(db, "competitions");
+  const hasResults = await tableExists(db, "competition_results");
+  if (!hasCompetitions || !hasResults) return false;
 
   try {
     const row = await db
-      .prepare("SELECT 1 AS ok FROM competitions WHERE streamer_user_id = ? LIMIT 1")
-      .bind(uid)
+      .prepare(
+        `SELECT 1 AS ok
+         FROM competitions c
+         JOIN competition_results r ON r.competition_id = c.id
+         WHERE c.streamer_user_id = ?
+           AND r.viewer_user_id <> ?
+           AND LOWER(r.viewer_user_id) NOT LIKE 'bot:%'
+           AND LOWER(r.viewer_user_id) NOT LIKE 'bot_%'
+           AND LOWER(r.viewer_user_id) NOT LIKE 'racer %'
+         LIMIT 1`,
+      )
+      .bind(uid, uid)
       .first();
     return !!row;
   } catch {
@@ -102,15 +132,16 @@ export async function onRequest(context) {
     return jsonResponse(request, { error: "missing_streamer_user" }, 401);
   }
 
-  // Enforce requirement #1/#4: streamer tools are only available after hosting at least one competition.
-  const isStreamer = await hasHostedAsStreamer(env, streamerUserId);
+  // Enforce requirement #1/#4: streamer tools are only available after at least one REAL viewer has joined
+  // this streamer's competitions (i.e., there is a viewer list to manage).
+  const isStreamer = await hasStreamerViewers(env, streamerUserId);
   if (!isStreamer) {
     return jsonResponse(
       request,
       {
         error: "not_streamer",
         message:
-          "Streamer tools become available after you host a competition and the game submits results.",
+          "Streamer tools become available after at least one viewer joins your competition and the game submits results.",
       },
       403,
     );

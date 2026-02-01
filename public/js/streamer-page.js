@@ -16,11 +16,9 @@ async function init() {
 
   const me = session.me || null;
   if (!me?.isStreamer) {
-    setNotice(
-      "The Streamer section becomes available after you host a competition and the game submits results.",
-      { isError: true },
-    );
     toast("Streamer tools are not available for this account.");
+    // Requirement: if a non-streamer tries to access /streamer, redirect them back home.
+    window.location.replace(`${window.location.origin}/mainmenu.html`);
     return;
   }
 
