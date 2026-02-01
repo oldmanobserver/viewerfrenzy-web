@@ -53,15 +53,22 @@ export async function onRequest(context) {
   const { request, env } = context;
 
   if (request.method === "OPTIONS") return handleOptions(request);
-  if (request.method !== "GET") return jsonResponse({ error: "method_not_allowed" }, 405);
+  if (request.method !== "GET") return jsonResponse(request, { error: "method_not_allowed" }, 405);
 
-  const auth = await requireWebsiteUser(context).catch((e) => ({ error: e }));
-  if (auth?.error) return auth.error;
+  const auth = await requireWebsiteUser(context);
+  if (!auth.ok) return auth.response;
+
+  const streamerUserId = toStr(auth.user?.userId);
+  const streamerLogin = toStr(auth.user?.login).toLowerCase();
+  if (!streamerUserId) {
+    return jsonResponse(request, { error: "missing_streamer_user" }, 401);
+  }
 
   // Streamer tools gating (consistent with /streamer/users)
-  const okStreamer = await hasStreamerViewers(env, auth.user.userId);
+  const okStreamer = await hasStreamerViewers(env, streamerUserId);
   if (!okStreamer) {
     return jsonResponse(
+      request,
       {
         error: "not_streamer",
         message: "Streamer tools are available after at least one viewer joins your competitions.",
@@ -71,7 +78,9 @@ export async function onRequest(context) {
   }
 
   const db = env?.VF_D1_STATS;
-  if (!db) return jsonResponse({ error: "server_error", message: "Database not configured" }, 500);
+  if (!db) {
+    return jsonResponse(request, { error: "db_not_bound", message: "Missing D1 binding: VF_D1_STATS" }, 500);
+  }
 
   const okRoles = await tableExists(db, "vf_streamer_twitch_roles");
   const okRoleUsers = await tableExists(db, "vf_streamer_twitch_role_users");
@@ -79,16 +88,19 @@ export async function onRequest(context) {
 
   if (!okRoles || !okRoleUsers || !okUserStreamers) {
     return jsonResponse(
+      request,
       {
-        error: "server_error",
-        message:
-          "Missing tables for streamer Twitch roles. Please run the latest database migrations in manage.viewerfrenzy.com.",
+        error: "db_migration_required",
+        message: "Missing required tables. Run DB migration v0.21+ (streamer Twitch roles).",
+        missing: {
+          vf_streamer_twitch_roles: !okRoles,
+          vf_streamer_twitch_role_users: !okRoleUsers,
+          vf_user_streamers: !okUserStreamers,
+        },
       },
       500,
     );
   }
-
-  const streamerUserId = toStr(auth.user.userId);
 
   // Ensure the role rows exist for this streamer (so the dropdown always has the Twitch-ish set).
   await ensureStreamerRoleRows(db, streamerUserId);
@@ -129,5 +141,13 @@ export async function onRequest(context) {
     };
   });
 
-  return jsonResponse({ roles }, 200);
+
+  return jsonResponse(request, {
+    ok: true,
+    streamer: {
+      userId: streamerUserId,
+      login: streamerLogin,
+    },
+    roles,
+  });
 }

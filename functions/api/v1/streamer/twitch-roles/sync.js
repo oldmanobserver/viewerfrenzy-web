@@ -310,8 +310,8 @@ export async function onRequest(context) {
   if (request.method === "OPTIONS") return handleOptions(request);
   if (request.method !== "POST") return jsonResponse(request, { error: "method_not_allowed" }, 405);
 
-  const auth = await requireWebsiteUser(context).catch((e) => ({ error: e }));
-  if (auth?.error) return auth.error;
+  const auth = await requireWebsiteUser(context);
+  if (!auth.ok) return auth.response;
 
   // This endpoint MUST be called with a Twitch user access token (not the VF session JWT),
   // since we need to call Helix role endpoints.
