@@ -7,13 +7,14 @@ function assertTypeSegment(type) {
   return t;
 }
 
-async function apiFetch(path, { method = "GET", auth, body } = {}) {
+async function apiFetch(path, { method = "GET", auth, body, preferTwitchToken = false } = {}) {
   const headers = {
     Accept: "application/json",
   };
 
-  if (auth && auth.accessToken) {
-    headers.Authorization = `Bearer ${auth.accessToken}`;
+  if (auth) {
+    const token = (preferTwitchToken && auth.twitchAccessToken) ? auth.twitchAccessToken : auth.accessToken;
+    if (token) headers.Authorization = `Bearer ${token}`;
   }
 
   if (body !== undefined) {
@@ -135,6 +136,20 @@ export async function getAchievements() {
 // Authenticated: Streamer tools
 export async function listStreamerUsers(auth) {
   return apiFetch("/api/v1/streamer/users", { method: "GET", auth });
+}
+
+export async function listStreamerTwitchRoles(auth) {
+  return apiFetch("/api/v1/streamer/twitch-roles", { method: "GET", auth });
+}
+
+export async function syncStreamerTwitchRoles(roleId, auth) {
+  const rid = String(roleId || "all").trim() || "all";
+  return apiFetch("/api/v1/streamer/twitch-roles/sync", {
+    method: "POST",
+    auth,
+    preferTwitchToken: true,
+    body: { roleId: rid },
+  });
 }
 
 export async function addStreamerUser(loginOrId, auth) {

@@ -189,6 +189,36 @@ export async function onRequest(context) {
 
     const users = (Array.isArray(rs?.results) ? rs.results : []).map(normalizeViewerRow);
 
+    // Optional: attach cached Twitch role membership (per streamer) so the front-end can filter.
+    const hasRoleUsers = await tableExists(db, "vf_streamer_twitch_role_users");
+    if (hasRoleUsers && users.length) {
+      const rr = await db
+        .prepare(
+          `SELECT user_id, role_id
+           FROM vf_streamer_twitch_role_users
+           WHERE streamer_user_id = ?`,
+        )
+        .bind(streamerUserId)
+        .all();
+
+      const roleMap = new Map();
+      for (const row of Array.isArray(rr?.results) ? rr.results : []) {
+        const uid = toStr(row?.user_id);
+        const rid = toStr(row?.role_id);
+        if (!uid || !rid) continue;
+        if (!roleMap.has(uid)) roleMap.set(uid, []);
+        roleMap.get(uid).push(rid);
+      }
+
+      for (const u of users) {
+        u.roles = roleMap.get(u.userId) || [];
+      }
+    } else {
+      for (const u of users) {
+        u.roles = [];
+      }
+    }
+
     return jsonResponse(request, {
       ok: true,
       streamer: {

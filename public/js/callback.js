@@ -97,7 +97,17 @@ function parseHashParams() {
       return;
     }
 
-    setAuthFromVfSession({ token: vfToken, expiresAtUnix });
+    const nowUnix = Math.floor(Date.now() / 1000);
+    const twitchExpiresAtUnix = expiresIn ? nowUnix + Number(expiresIn) : 0;
+
+    setAuthFromVfSession({
+      token: vfToken,
+      expiresAtUnix,
+      twitchAccessToken: accessToken,
+      twitchTokenType: tokenType,
+      twitchScope: scope,
+      twitchExpiresAtUnix,
+    });
 
     setStatus("Redirecting…");
 

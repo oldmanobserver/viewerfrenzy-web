@@ -116,12 +116,25 @@
         </div>
 
         <div class="vf-card" style="margin-top: 12px">
-          <div class="vf-row" style="justify-content: space-between; align-items: center; gap: 10px">
+          <div class="vf-row" style="justify-content: space-between; align-items: flex-end; gap: 10px; flex-wrap: wrap">
             <div>
               <div class="vf-h2" style="margin: 0">Users</div>
               <div class="vf-small vf-muted" id="vf-userCount">Loading…</div>
             </div>
+
+            <div class="vf-row" style="gap: 8px; align-items: flex-end; justify-content: flex-end">
+              <div class="vf-field" style="min-width: min(260px, 100%); margin: 0">
+                <div class="vf-fieldLabel">Twitch role filter</div>
+                <select id="vf-roleFilter" class="vf-select">
+                  <option value="all">All Roles</option>
+                </select>
+              </div>
+
+              <button id="vf-syncRolesBtn" class="vf-btn vf-btnSecondary" type="button" disabled>Sync</button>
+            </div>
           </div>
+
+          <div id="vf-roleMsg" class="vf-alert" hidden></div>
 
           <div class="vf-tableWrap" style="margin-top: 10px">
             <table class="vf-table vf-tableAuto">

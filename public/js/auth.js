@@ -148,15 +148,47 @@ export function setAuthFromCallback({ accessToken, tokenType, scope, expiresInSe
 
 // Preferred: after Twitch login, exchange Twitch token for a ViewerFrenzy session token (VF JWT)
 // and store that instead of the Twitch token.
-export function setAuthFromVfSession({ token, expiresAtUnix }) {
+//
+// We ALSO persist the original Twitch token (and its scopes/expiry) so streamer tools can
+// call Twitch Helix endpoints that require broadcaster scopes (e.g., sync moderators/VIPs/editors).
+export function setAuthFromVfSession({
+  token,
+  expiresAtUnix,
+  twitchAccessToken,
+  twitchTokenType,
+  twitchScope,
+  twitchExpiresAtUnix,
+}) {
   const now = Math.floor(Date.now() / 1000);
-  saveAuth({
+
+  const existing = loadAuth() || {};
+
+  const next = {
+    ...existing,
     accessToken: token,
     tokenType: "vf",
     scope: "",
     obtainedAtUnix: now,
     expiresAtUnix: Number(expiresAtUnix || 0),
-  });
+  };
+
+  if (twitchAccessToken) {
+    next.twitchAccessToken = twitchAccessToken;
+    next.twitchTokenType = twitchTokenType || "bearer";
+    next.twitchScope = twitchScope || "";
+    next.twitchObtainedAtUnix = now;
+    next.twitchExpiresAtUnix = Number(twitchExpiresAtUnix || 0);
+  }
+
+  saveAuth(next);
+}
+
+export function isTwitchExpired(auth, skewSeconds = 30) {
+  if (!auth) return true;
+  const exp = Number(auth.twitchExpiresAtUnix || 0);
+  if (!exp) return false; // treat missing expiry as non-expiring
+  const now = Math.floor(Date.now() / 1000);
+  return now + Math.max(0, skewSeconds) >= exp;
 }
 
 export function logout() {
