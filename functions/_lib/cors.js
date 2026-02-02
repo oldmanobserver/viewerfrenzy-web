@@ -4,8 +4,12 @@
 const ALLOWED_ORIGINS = new Set([
   "https://viewerfrenzy.com",
   "https://www.viewerfrenzy.com",
+  "https://streamer.viewerfrenzy.com",
+  "https://www.streamer.viewerfrenzy.com",
   "https://dev.viewerfrenzy.com",
   "https://www.dev.viewerfrenzy.com",
+  "https://streamer.dev.viewerfrenzy.com",
+  "https://www.streamer.dev.viewerfrenzy.com",
   "http://localhost:8788",
   "http://localhost:3000",
 ]);
