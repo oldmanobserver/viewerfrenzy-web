@@ -79,7 +79,6 @@ export async function onRequest(context) {
       login,
       display_name,
       profile_image_url,
-      roles,
       last_seen_at_ms,
       created_at_ms,
       updated_at_ms,
@@ -88,7 +87,6 @@ export async function onRequest(context) {
       support_updated_at_ms
     )
     VALUES (
-      ?,
       ?,
       ?,
       ?,
@@ -143,7 +141,6 @@ export async function onRequest(context) {
           login,
           displayName,
           profileImageUrl,
-          "", // roles (kept as-is on updates)
           now, // last_seen_at_ms
           now, // created_at_ms
           now, // updated_at_ms
