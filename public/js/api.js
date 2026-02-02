@@ -156,6 +156,9 @@ export async function addStreamerUser(loginOrId, auth) {
   return apiFetch("/api/v1/streamer/users", {
     method: "POST",
     auth,
+    // Adding users requires Twitch Helix lookup (login -> id, avatar, display name).
+    // Use the stored Twitch token when available.
+    preferTwitchToken: true,
     body: { loginOrId: loginOrId ?? "" },
   });
 }
@@ -207,6 +210,9 @@ export async function bulkUpdateStreamerVfRole(roleId, { mode = "add", usersRaw 
   return apiFetch(`/api/v1/streamer/roles/${encodeURIComponent(rid)}/bulk`, {
     method: "POST",
     auth,
+    // Bulk role updates may need to resolve Twitch logins -> user IDs.
+    // Use the stored Twitch token when available.
+    preferTwitchToken: true,
     body: { mode, usersRaw, dryRun: !!dryRun },
   });
 }

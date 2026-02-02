@@ -278,6 +278,20 @@ export async function onRequest(context) {
     return jsonResponse(request, { error: "missing_client_id" }, 500);
   }
 
+  // We must call Twitch Helix to resolve login -> id (and fetch display/avatar).
+  // If the caller authenticated using a VF session JWT (not a Twitch token), we can't do that.
+  // The streamer UI should send the stored Twitch token for this request.
+  if (auth?.vfSession) {
+    return jsonResponse(
+      request,
+      {
+        error: "twitch_token_required",
+        message: "Adding users requires a Twitch token. Please log out and log back in.",
+      },
+      401,
+    );
+  }
+
   const lookup = await helixLookupUser({ accessToken: auth.token, clientId, loginOrId });
   if (!lookup.ok) {
     return jsonResponse(
@@ -303,6 +317,19 @@ export async function onRequest(context) {
 
   if (viewerUserId === streamerUserId) {
     return jsonResponse(request, { error: "cannot_add_self", message: "You cannot add yourself." }, 400);
+  }
+
+  // Detect whether this viewer was already on the streamer's list.
+  let added = true;
+  try {
+    const existing = await db
+      .prepare("SELECT 1 AS ok FROM vf_user_streamers WHERE user_id = ? AND streamer_user_id = ? LIMIT 1")
+      .bind(viewerUserId, streamerUserId)
+      .first();
+    added = !existing;
+  } catch {
+    // Ignore and treat as newly added.
+    added = true;
   }
 
   const t = nowMs();
@@ -342,6 +369,7 @@ export async function onRequest(context) {
 
   return jsonResponse(request, {
     ok: true,
+    added,
     user: {
       userId: viewerUserId,
       login: viewerLogin,
