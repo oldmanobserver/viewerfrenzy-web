@@ -6,7 +6,10 @@
 // Storage (v0.8+): D1
 // - vf_components
 // - vf_component_role_assignments
-// - vf_vehicle_role_competitions (shared roles table)
+// - vf_component_role_competitions (v0.24+)
+//
+// Transitional fallback (pre-v0.24):
+// - vf_vehicle_role_competitions (roles shared with vehicles)
 
 import { handleOptions } from "../../_lib/cors.js";
 import { jsonResponse } from "../../_lib/response.js";
@@ -44,10 +47,27 @@ export async function onRequest(context) {
 
   const ok1 = await tableExists(db, "vf_components");
   const ok2 = await tableExists(db, "vf_component_role_assignments");
-  const ok3 = await tableExists(db, "vf_vehicle_role_competitions");
-  if (!ok1 || !ok2 || !ok3) {
+  const ok3a = await tableExists(db, "vf_component_role_competitions");
+  const ok3b = await tableExists(db, "vf_vehicle_role_competitions");
+  if (!ok1 || !ok2 || (!ok3a && !ok3b)) {
     return jsonResponse(request, { ok: true, competition, components: [], meta: { source: "none", reason: "tables_missing" } });
   }
+
+  // v0.24 renamed assignment column: vehicle_role_id -> component_role_id
+  let assignRoleCol = "component_role_id";
+  try {
+    const info = await db.prepare("PRAGMA table_info(vf_component_role_assignments)").all();
+    const cols = new Set((info?.results || []).map((r) => String(r?.name || "").trim()));
+    if (!cols.has("component_role_id") && cols.has("vehicle_role_id")) {
+      assignRoleCol = "vehicle_role_id";
+    }
+  } catch {
+    assignRoleCol = "vehicle_role_id";
+  }
+
+  // Prefer the new component-role competitions mapping when available.
+  const roleCompTable = ok3a ? "vf_component_role_competitions" : "vf_vehicle_role_competitions";
+  const roleCompIdCol = ok3a ? "component_role_id" : "vehicle_role_id";
 
   const disabledFilter = includeDisabled ? "" : "AND c.disabled = 0";
 
@@ -67,7 +87,7 @@ export async function onRequest(context) {
          c.updated_at_ms
        FROM vf_components c
        JOIN vf_component_role_assignments a ON a.component_id = c.component_id
-       JOIN vf_vehicle_role_competitions rc ON rc.vehicle_role_id = a.vehicle_role_id
+       JOIN ${roleCompTable} rc ON rc.${roleCompIdCol} = a.${assignRoleCol}
        WHERE rc.competition_type = ?
        ${disabledFilter}
        ORDER BY c.pack, c.category, c.display_name`,
