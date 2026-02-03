@@ -38,6 +38,7 @@ export async function onRequest(context) {
 
   const url = new URL(request.url);
   const competition = sanitizeCompetition(url.searchParams.get("competition")) || "space";
+  const roleIdRaw = String(url.searchParams.get("roleId") || "").trim().toLowerCase();
   const includeDisabled = url.searchParams.get("includeDisabled") === "1";
 
   const db = env?.VF_D1_STATS;
@@ -71,29 +72,58 @@ export async function onRequest(context) {
 
   const disabledFilter = includeDisabled ? "" : "AND c.disabled = 0";
 
-  const rs = await db
-    .prepare(
-      `SELECT DISTINCT
-         c.component_id,
-         c.display_name,
-         c.description,
-         c.resources_path,
-         c.source_asset_path,
-         c.prefab_name,
-         c.category,
-         c.pack,
-         c.disabled,
-         c.created_at_ms,
-         c.updated_at_ms
-       FROM vf_components c
-       JOIN vf_component_role_assignments a ON a.component_id = c.component_id
-       JOIN ${roleCompTable} rc ON rc.${roleCompIdCol} = a.${assignRoleCol}
-       WHERE rc.competition_type = ?
-       ${disabledFilter}
-       ORDER BY c.pack, c.category, c.display_name`,
-    )
-    .bind(competition)
-    .all();
+  // If roleId is present, treat this as a role-scoped query (used by the Unity Track Editor).
+  // We intentionally DO NOT apply the competition filter in this path, because selecting a role
+  // is itself the filter (and roles may be used as an override when editing a different map type).
+  let rs = null;
+  if (roleIdRaw) {
+    rs = await db
+      .prepare(
+        `SELECT DISTINCT
+           c.component_id,
+           c.display_name,
+           c.description,
+           c.resources_path,
+           c.source_asset_path,
+           c.prefab_name,
+           c.category,
+           c.pack,
+           c.disabled,
+           c.created_at_ms,
+           c.updated_at_ms
+         FROM vf_components c
+         JOIN vf_component_role_assignments a ON a.component_id = c.component_id
+         WHERE LOWER(a.${assignRoleCol}) = ?
+         ${disabledFilter}
+         ORDER BY c.pack, c.category, c.display_name`,
+      )
+      .bind(roleIdRaw)
+      .all();
+  } else {
+    rs = await db
+      .prepare(
+        `SELECT DISTINCT
+           c.component_id,
+           c.display_name,
+           c.description,
+           c.resources_path,
+           c.source_asset_path,
+           c.prefab_name,
+           c.category,
+           c.pack,
+           c.disabled,
+           c.created_at_ms,
+           c.updated_at_ms
+         FROM vf_components c
+         JOIN vf_component_role_assignments a ON a.component_id = c.component_id
+         JOIN ${roleCompTable} rc ON rc.${roleCompIdCol} = a.${assignRoleCol}
+         WHERE rc.competition_type = ?
+         ${disabledFilter}
+         ORDER BY c.pack, c.category, c.display_name`,
+      )
+      .bind(competition)
+      .all();
+  }
 
   const components = (rs?.results || []).map((r) => ({
     componentId: String(r?.component_id || ""),
@@ -109,5 +139,5 @@ export async function onRequest(context) {
     updatedAtMs: Number(r?.updated_at_ms || 0),
   }));
 
-  return jsonResponse(request, { ok: true, competition, components, meta: { source: "d1" } });
+  return jsonResponse(request, { ok: true, competition, roleId: roleIdRaw || "", components, meta: { source: "d1" } });
 }
