@@ -24,15 +24,21 @@ function isValidRoleId(id) {
   return /^[a-z0-9_-]{1,48}$/.test(String(id || "").trim());
 }
 
-function normalizeRoleFromDb(roleRow, flagsSet, itemCount) {
+function normalizeRoleFromDb(roleRow, flagsSet, itemCount, defaultTypesSet) {
   const roleId = toStr(roleRow?.role_id).toLowerCase();
   const flags = {};
   for (const t of COMPETITION_TYPES) flags[t] = flagsSet?.has(t) || false;
+  const defaultCompetitions = Array.from(defaultTypesSet || [])
+    .map((s) => String(s || "").trim().toLowerCase())
+    .filter(Boolean)
+    .sort();
   return {
     roleId,
     name: toStr(roleRow?.name) || roleId,
     description: toStr(roleRow?.description),
     ...flags,
+    isDefault: defaultCompetitions.length > 0,
+    defaultCompetitions,
     itemCount: Number(itemCount || 0) || 0,
   };
 }
@@ -70,6 +76,8 @@ export async function onRequest(context) {
   const rolesTable = useComponentRoles ? "vf_component_roles" : "vf_vehicle_roles";
   const compsTable = useComponentRoles ? "vf_component_role_competitions" : "vf_vehicle_role_competitions";
   const roleIdCol = useComponentRoles ? "component_role_id" : "vehicle_role_id";
+  const defaultsTable = useComponentRoles ? "vf_component_role_defaults" : "vf_vehicle_role_defaults";
+  const defaultsRoleCol = useComponentRoles ? "component_role_id" : "vehicle_role_id";
 
   // v0.24 renamed assignment column: vehicle_role_id -> component_role_id
   let assignRoleCol = "component_role_id";
@@ -111,6 +119,25 @@ export async function onRequest(context) {
     compByRole.get(rid).add(type);
   }
 
+  // 2.5) Per-competition defaults (optional until v0.25 migration is applied).
+  const defaultByRole = new Map();
+  if (await tableExists(db, defaultsTable)) {
+    const defRows = await db
+      .prepare(
+        `SELECT competition_type, ${defaultsRoleCol} AS role_id
+         FROM ${defaultsTable}`,
+      )
+      .all();
+
+    for (const r of Array.isArray(defRows?.results) ? defRows.results : []) {
+      const rid = toStr(r?.role_id).toLowerCase();
+      const type = toStr(r?.competition_type).toLowerCase();
+      if (!rid || !type) continue;
+      if (!defaultByRole.has(rid)) defaultByRole.set(rid, new Set());
+      defaultByRole.get(rid).add(type);
+    }
+  }
+
   // 3) Item counts (enabled components) per role
   const countByRole = new Map();
   const canCount =
@@ -141,7 +168,7 @@ export async function onRequest(context) {
     if (!rid || !isValidRoleId(rid)) continue;
     const itemCount = countByRole.get(rid) || 0;
     if (!includeEmpty && itemCount <= 0) continue;
-    roles.push(normalizeRoleFromDb(rr, compByRole.get(rid), itemCount));
+    roles.push(normalizeRoleFromDb(rr, compByRole.get(rid), itemCount, defaultByRole.get(rid)));
   }
 
   return jsonResponse(request, {

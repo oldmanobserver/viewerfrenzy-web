@@ -50,6 +50,25 @@ export async function tableExists(db, tableName) {
   }
 }
 
+
+export async function columnExists(db, tableName, columnName) {
+  if (!db) return false;
+  const t = toStr(tableName);
+  const c = toStr(columnName);
+  if (!t || !c) return false;
+
+  // Basic safety: D1/SQLite identifiers should be simple.
+  if (!/^[A-Za-z0-9_]+$/.test(t) || !/^[A-Za-z0-9_]+$/.test(c)) return false;
+
+  try {
+    const info = await db.prepare(`PRAGMA table_info(${t})`).all();
+    const cols = new Set((info?.results || []).map((r) => String(r?.name || "").trim()));
+    return cols.has(c);
+  } catch {
+    return false;
+  }
+}
+
 export function isNoSuchTableError(e) {
   const msg = String(e?.message || e || "").toLowerCase();
   return msg.includes("no such table");
