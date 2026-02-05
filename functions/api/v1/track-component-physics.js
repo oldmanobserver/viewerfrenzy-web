@@ -45,12 +45,7 @@ async function readJsonBody(request) {
 async function fetchComponentsByIds(db, ids, hasPhysicsCols) {
   if (!ids.length) return [];
 
-  const baseCols = [
-    "component_id",
-    "pack",
-    "category",
-    "resources_path",
-  ];
+  const baseCols = ["component_id", "pack", "category", "resources_path"];
 
   const physicsCols = hasPhysicsCols
     ? [
@@ -87,16 +82,24 @@ export async function onRequest(context) {
   if (opt) return opt;
 
   if (!env?.VF_D1_STATS) {
-    return jsonResponse({ ok: false, error: "missing_binding", message: "VF_D1_STATS binding is missing" }, 500);
+    return jsonResponse(
+      request,
+      { ok: false, error: "missing_binding", message: "VF_D1_STATS binding is missing" },
+      500
+    );
   }
 
   if (request.method !== "POST" && request.method !== "GET") {
-    return jsonResponse({ ok: false, error: "method_not_allowed" }, 405);
+    return jsonResponse(request, { ok: false, error: "method_not_allowed" }, 405);
   }
 
   const db = env.VF_D1_STATS;
   if (!(await tableExists(db, "vf_components"))) {
-    return jsonResponse({ ok: false, error: "missing_tables", message: "vf_components table not found" }, 500);
+    return jsonResponse(
+      request,
+      { ok: false, error: "missing_tables", message: "vf_components table not found" },
+      500
+    );
   }
 
   // DB might not be migrated yet in some environments.
@@ -114,7 +117,7 @@ export async function onRequest(context) {
   }
 
   if (!ids.length) {
-    return jsonResponse({ ok: true, components: [], missing: [] });
+    return jsonResponse(request, { ok: true, components: [], missing: [] });
   }
 
   const rows = await fetchComponentsByIds(db, ids, hasPhysicsCols);
@@ -147,5 +150,5 @@ export async function onRequest(context) {
     components.push({ componentId: id, physics });
   }
 
-  return jsonResponse({ ok: true, components, missing });
+  return jsonResponse(request, { ok: true, components, missing });
 }
