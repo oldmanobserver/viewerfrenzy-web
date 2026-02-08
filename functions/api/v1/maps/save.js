@@ -40,6 +40,19 @@ function isNoSuchColumnError(e, colName) {
   return msg.includes("no such column") && (!c || msg.includes(c));
 }
 
+function isUniqueConstraintError(e, indexName) {
+  const msg = String(e?.message || e || "");
+  const low = msg.toLowerCase();
+
+  // D1 typically formats this as:
+  // "D1_ERROR: UNIQUE constraint failed: index 'idx_vf_maps_name_active_ci': SQLITE_CONSTRAINT"
+  const isUnique = low.includes("unique constraint failed") || low.includes("sqlite_constraint");
+  if (!isUnique) return false;
+
+  if (!indexName) return low.includes("unique constraint failed");
+  return low.includes(String(indexName).toLowerCase());
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
 
@@ -111,7 +124,6 @@ export async function onRequest(context) {
   if (imagePngBytes?.error)
     return jsonResponse(request, { ok: false, error: "bad_image", message: imagePngBytes.error }, 400);
 
-
   const now = nowMs();
 
   // Enforce unique name (case-insensitive)
@@ -159,14 +171,22 @@ export async function onRequest(context) {
     if (clash)
       return jsonResponse(request, { ok: false, error: "name_taken", message: "A map with that name already exists." }, 409);
 
-    await db
-      .prepare(
-        `UPDATE vf_maps
-         SET name = ?, map_json = ?, map_version = ?, map_hash_sha256 = ?, vehicle_type = ?, game_mode = ?, updated_at_ms = ?
-         WHERE id = ?`,
-      )
-      .bind(name, json, mapVersion, mapHash, vehicleType, gameMode, now, id)
-      .run();
+    try {
+      await db
+        .prepare(
+          `UPDATE vf_maps
+           SET name = ?, map_json = ?, map_version = ?, map_hash_sha256 = ?, vehicle_type = ?, game_mode = ?, updated_at_ms = ?
+           WHERE id = ?`,
+        )
+        .bind(name, json, mapVersion, mapHash, vehicleType, gameMode, now, id)
+        .run();
+    } catch (e) {
+      // Race safety: someone else could insert/rename between our clash check and the UPDATE.
+      if (isUniqueConstraintError(e, "idx_vf_maps_name_active_ci")) {
+        return jsonResponse(request, { ok: false, error: "name_taken", message: "A map with that name already exists." }, 409);
+      }
+      throw e;
+    }
 
     // Map JSON changed -> reset cached finish time (it will be recomputed after new competitions are posted).
     await tryResetMapFinishTimeMs(db, id);
@@ -231,26 +251,114 @@ export async function onRequest(context) {
   if (clash)
     return jsonResponse(request, { ok: false, error: "name_taken", message: "A map with that name already exists." }, 409);
 
-  const ins = await db
-    .prepare(
-      `INSERT INTO vf_maps (
-        name, map_json, map_version, map_hash_sha256, vehicle_type, game_mode,
-        created_by_user_id, created_by_login, created_at_ms, updated_at_ms
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(
-      name,
-      json,
-      mapVersion,
-      mapHash,
-      vehicleType,
-      gameMode,
-      toStr(authUser?.userId),
-      toStr(authUser?.login),
-      now,
-      now,
-    )
-    .run();
+  // NOTE: even with the clash check above, two parallel creates can still race:
+  // both SELECTs may see no row, then one INSERT succeeds and the other hits the UNIQUE index.
+  // We handle that here to avoid returning a 500.
+  let ins = null;
+  try {
+    ins = await db
+      .prepare(
+        `INSERT INTO vf_maps (
+          name, map_json, map_version, map_hash_sha256, vehicle_type, game_mode,
+          created_by_user_id, created_by_login, created_at_ms, updated_at_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        name,
+        json,
+        mapVersion,
+        mapHash,
+        vehicleType,
+        gameMode,
+        toStr(authUser?.userId),
+        toStr(authUser?.login),
+        now,
+        now,
+      )
+      .run();
+  } catch (e) {
+    if (!isUniqueConstraintError(e, "idx_vf_maps_name_active_ci")) throw e;
+
+    // Another request likely created it first (double-click / pump overlap).
+    // Fetch the existing map and:
+    // - if it's owned by this user AND it was created very recently, treat this as an idempotent create/update
+    // - otherwise return name_taken (409)
+    let existing = null;
+    try {
+      existing = await db
+        .prepare("SELECT id, created_by_user_id, created_by_login, created_at_ms, updated_at_ms, deleted FROM vf_maps WHERE lower(name) = lower(?) AND deleted = 0 LIMIT 1")
+        .bind(name)
+        .first();
+    } catch (e2) {
+      if (!isNoSuchColumnError(e2, "deleted")) throw e2;
+      existing = await db
+        .prepare("SELECT id, created_by_user_id, created_by_login, created_at_ms, updated_at_ms FROM vf_maps WHERE lower(name) = lower(?) LIMIT 1")
+        .bind(name)
+        .first();
+    }
+
+    const existingId = Number(existing?.id || 0) || 0;
+    const existingCreatedAt = Number(existing?.created_at_ms || 0) || 0;
+    const sameOwner = toStr(existing?.created_by_user_id) === toStr(authUser?.userId);
+
+    // Only auto-heal if this looks like a duplicate request from the same user.
+    // (Avoid silently overwriting an older map in the rare case the client lost its id.)
+    const isRecentDuplicate = existingId > 0 && sameOwner && existingCreatedAt > 0 && (now - existingCreatedAt) <= 15_000;
+
+    if (!isRecentDuplicate)
+      return jsonResponse(request, { ok: false, error: "name_taken", message: "A map with that name already exists." }, 409);
+
+    // Idempotent behaviour: update the row using the payload from this request.
+    await db
+      .prepare(
+        `UPDATE vf_maps
+         SET name = ?, map_json = ?, map_version = ?, map_hash_sha256 = ?, vehicle_type = ?, game_mode = ?, updated_at_ms = ?
+         WHERE id = ?`,
+      )
+      .bind(name, json, mapVersion, mapHash, vehicleType, gameMode, now, existingId)
+      .run();
+
+    await tryResetMapFinishTimeMs(db, existingId);
+    await tryUpdateMapImages(db, existingId, thumbPngBytes?.bytes, imagePngBytes?.bytes);
+
+    let row = null;
+    try {
+      row = await db
+        .prepare(
+          "SELECT id, name, map_version, map_hash_sha256, vehicle_type, game_mode, created_by_user_id, created_by_login, created_at_ms, updated_at_ms, deleted FROM vf_maps WHERE id = ? LIMIT 1",
+        )
+        .bind(existingId)
+        .first();
+    } catch (e3) {
+      if (!isNoSuchColumnError(e3, "deleted")) throw e3;
+      row = await db
+        .prepare(
+          "SELECT id, name, map_version, map_hash_sha256, vehicle_type, game_mode, created_by_user_id, created_by_login, created_at_ms, updated_at_ms FROM vf_maps WHERE id = ? LIMIT 1",
+        )
+        .bind(existingId)
+        .first();
+    }
+
+    const finishTimeMs = await safeSelectFinishTimeMs(db, existingId);
+
+    return jsonResponse(request, {
+      ok: true,
+      map: {
+        id: Number(row?.id) || existingId,
+        name: toStr(row?.name) || name,
+        version: Number(row?.map_version || 0) || 0,
+        hashSha256: toStr(row?.map_hash_sha256),
+        vehicleType: toStr(row?.vehicle_type),
+        gameMode: toStr(row?.game_mode),
+        createdByUserId: toStr(row?.created_by_user_id),
+        createdByLogin: toStr(row?.created_by_login),
+        createdAtMs: Number(row?.created_at_ms || 0) || 0,
+        updatedAtMs: Number(row?.updated_at_ms || 0) || 0,
+        finishTimeMs,
+        deleted: toBool(row?.deleted),
+      },
+    });
+  }
 
   const newId = Number(ins?.meta?.last_row_id || 0) || 0;
 
