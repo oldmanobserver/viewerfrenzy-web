@@ -173,6 +173,8 @@ export async function onRequest(context) {
   // Read params
   let competitionType = "";
   let ids = [];
+  let defaultsOverride = null;
+  let tuningOverride = null;
 
   if (request.method === "GET") {
     const url = new URL(request.url);
@@ -183,6 +185,12 @@ export async function onRequest(context) {
     const body = await readJsonBody(request);
     competitionType = normalizeCompetitionType(body?.competitionType || "");
     ids = sanitizeVehicleIds(body?.vehicleIds);
+
+    // Optional per-map overrides (MapData.vehiclePhysicsOverrides)
+    if (body?.defaultsOverride && typeof body.defaultsOverride === "object" && !Array.isArray(body.defaultsOverride))
+      defaultsOverride = body.defaultsOverride;
+    if (body?.tuningOverride && typeof body.tuningOverride === "object" && !Array.isArray(body.tuningOverride))
+      tuningOverride = body.tuningOverride;
   }
 
   if (!isKnownCompetitionType(competitionType)) {
@@ -197,8 +205,50 @@ export async function onRequest(context) {
     );
   }
 
-  const defaults = await fetchDefaultsFromDb(db, competitionType);
-  const tuning = await fetchRaceTuningFromDb(db, competitionType);
+  let defaults = await fetchDefaultsFromDb(db, competitionType);
+  let tuning = await fetchRaceTuningFromDb(db, competitionType);
+
+  // Apply request-level overrides *on top of* DB defaults.
+  // This is used for per-map physics overrides.
+  if (defaultsOverride)
+  {
+    defaults = computeEffectiveVehiclePhysics(defaults, {
+      physics_linear_damping: defaultsOverride.linearDamping,
+      physics_angular_damping: defaultsOverride.angularDamping,
+      physics_friction: defaultsOverride.friction,
+      physics_bounciness: defaultsOverride.bounciness,
+      physics_lateral_grip: defaultsOverride.lateralGrip,
+      physics_collision_impulse_mult: defaultsOverride.collisionImpulseMult,
+      physics_collision_spin_mult: defaultsOverride.collisionSpinMult,
+    });
+  }
+
+  if (tuningOverride)
+  {
+    tuning = computeEffectiveRaceTuning(tuning, {
+      enable_pack_balancing: tuningOverride.enablePackBalancing,
+      pack_balancing_start_delay_s: tuningOverride.packBalancingStartDelaySeconds,
+      pack_balancing_update_interval_s: tuningOverride.packBalancingUpdateInterval,
+      catchup_distance_for_max_boost_m: tuningOverride.catchupDistanceForMaxBoost,
+      max_catchup_boost: tuningOverride.maxCatchupBoost,
+      lead_gap_for_max_drag_m: tuningOverride.leadGapForMaxDrag,
+      max_leader_drag: tuningOverride.maxLeaderDrag,
+      smooth_pack_balancing_ramp_in: tuningOverride.smoothPackBalancingRampIn,
+      pack_balancing_ramp_in_s: tuningOverride.packBalancingRampInSeconds,
+
+      enable_slipstream: tuningOverride.enableSlipstream,
+      slipstream_range_m: tuningOverride.slipstreamRangeMeters,
+      slipstream_max_boost: tuningOverride.slipstreamMaxBoost,
+      slipstream_front_drag: tuningOverride.slipstreamFrontDrag,
+
+      enable_lead_swap_pressure: tuningOverride.enableLeadSwapPressure,
+      lead_hold_grace_s: tuningOverride.leadHoldGraceSeconds,
+      lead_hold_ramp_s: tuningOverride.leadHoldRampSeconds,
+      max_lead_hold_drag: tuningOverride.maxLeadHoldDrag,
+      max_challenger_boost: tuningOverride.maxChallengerBoost,
+      lead_swap_pressure_max_gap_m: tuningOverride.leadSwapPressureMaxGapMeters,
+    });
+  }
 
   // Overrides may not exist yet in some environments.
   const hasOverrideCols =
