@@ -24,7 +24,9 @@ import { handleOptions } from "../../_lib/cors.js";
 import { jsonResponse } from "../../_lib/response.js";
 import { tableExists, columnExists } from "../../_lib/dbUtil.js";
 import {
+  computeCodeDefaultRaceTuning,
   computeCodeDefaultVehiclePhysics,
+  computeEffectiveRaceTuning,
   computeEffectiveVehiclePhysics,
   isKnownCompetitionType,
   normalizeCompetitionType,
@@ -88,6 +90,32 @@ async function fetchDefaultsFromDb(db, competitionType) {
       physics_collision_impulse_mult: row.collision_impulse_mult,
       physics_collision_spin_mult: row.collision_spin_mult,
     });
+  } catch {
+    return codeDefaults;
+  }
+}
+
+async function fetchRaceTuningFromDb(db, competitionType) {
+  const codeDefaults = computeCodeDefaultRaceTuning(competitionType);
+
+  const hasDefaultsTable = await tableExists(db, "vf_vehicle_physics_defaults");
+  if (!hasDefaultsTable) return codeDefaults;
+
+  // Race tuning columns were added in v0.30. If not present, return code defaults.
+  const hasTuningCols = await columnExists(db, "vf_vehicle_physics_defaults", "max_catchup_boost");
+  if (!hasTuningCols) return codeDefaults;
+
+  try {
+    const row = await db
+      .prepare(
+        "SELECT enable_pack_balancing, pack_balancing_start_delay_s, pack_balancing_update_interval_s, catchup_distance_for_max_boost_m, max_catchup_boost, lead_gap_for_max_drag_m, max_leader_drag, smooth_pack_balancing_ramp_in, pack_balancing_ramp_in_s, enable_slipstream, slipstream_range_m, slipstream_max_boost, slipstream_front_drag, enable_lead_swap_pressure, lead_hold_grace_s, lead_hold_ramp_s, max_lead_hold_drag, max_challenger_boost, lead_swap_pressure_max_gap_m FROM vf_vehicle_physics_defaults WHERE competition_type = ? LIMIT 1"
+      )
+      .bind(competitionType)
+      .first();
+
+    if (!row) return codeDefaults;
+
+    return computeEffectiveRaceTuning(codeDefaults, row);
   } catch {
     return codeDefaults;
   }
@@ -170,6 +198,7 @@ export async function onRequest(context) {
   }
 
   const defaults = await fetchDefaultsFromDb(db, competitionType);
+  const tuning = await fetchRaceTuningFromDb(db, competitionType);
 
   // Overrides may not exist yet in some environments.
   const hasOverrideCols =
@@ -196,6 +225,7 @@ export async function onRequest(context) {
     ok: true,
     competitionType,
     defaults,
+    tuning,
     vehicles,
     missing,
   });
