@@ -26,6 +26,7 @@ import { tableExists, columnExists } from "../../_lib/dbUtil.js";
 import {
   computeCodeDefaultRaceTuning,
   computeCodeDefaultVehiclePhysics,
+  computeCodeDefaultZoomSettings,
   computeEffectiveRaceTuning,
   computeEffectiveVehiclePhysics,
   isKnownCompetitionType,
@@ -121,6 +122,75 @@ async function fetchRaceTuningFromDb(db, competitionType) {
   }
 }
 
+
+async function fetchZoomSettingsFromDb(db, competitionType) {
+  const codeDefaults = computeCodeDefaultZoomSettings(competitionType);
+
+  const hasDefaultsTable = await tableExists(db, "vf_vehicle_physics_defaults");
+  if (!hasDefaultsTable) return codeDefaults;
+
+  // Zoom columns were added in v0.31. If not present, return code defaults.
+  const hasZoomCols = await columnExists(db, "vf_vehicle_physics_defaults", "zoom_base_zoom_count");
+  if (!hasZoomCols) return codeDefaults;
+
+  try {
+    const row = await db
+      .prepare(
+        `SELECT
+          zoom_base_zoom_count,
+          zoom_last_place_extra_enabled,
+          zoom_min_racers,
+          zoom_use_bottom_percent,
+          zoom_bottom_percent,
+          zoom_unlimited_extra_zooms,
+          zoom_max_extra_zooms
+        FROM vf_vehicle_physics_defaults
+        WHERE competition_type = ? LIMIT 1`,
+      )
+      .bind(competitionType)
+      .first();
+
+    if (!row) return codeDefaults;
+
+    return {
+      enabled: true,
+      baseZoomCount:
+        row.zoom_base_zoom_count === null || row.zoom_base_zoom_count === undefined
+          ? codeDefaults.baseZoomCount
+          : Number(row.zoom_base_zoom_count) || 0,
+      lastPlaceExtraZoom: {
+        enabled:
+          row.zoom_last_place_extra_enabled === null || row.zoom_last_place_extra_enabled === undefined
+            ? codeDefaults.lastPlaceExtraZoom.enabled
+            : Number(row.zoom_last_place_extra_enabled || 0) !== 0,
+        minRacers:
+          row.zoom_min_racers === null || row.zoom_min_racers === undefined
+            ? codeDefaults.lastPlaceExtraZoom.minRacers
+            : Number(row.zoom_min_racers) || 0,
+        useBottomPercent:
+          row.zoom_use_bottom_percent === null || row.zoom_use_bottom_percent === undefined
+            ? codeDefaults.lastPlaceExtraZoom.useBottomPercent
+            : Number(row.zoom_use_bottom_percent || 0) !== 0,
+        bottomPercent:
+          row.zoom_bottom_percent === null || row.zoom_bottom_percent === undefined
+            ? codeDefaults.lastPlaceExtraZoom.bottomPercent
+            : Number(row.zoom_bottom_percent) || 0,
+        unlimitedExtraZooms:
+          row.zoom_unlimited_extra_zooms === null || row.zoom_unlimited_extra_zooms === undefined
+            ? codeDefaults.lastPlaceExtraZoom.unlimitedExtraZooms
+            : Number(row.zoom_unlimited_extra_zooms || 0) !== 0,
+        maxExtraZooms:
+          row.zoom_max_extra_zooms === null || row.zoom_max_extra_zooms === undefined
+            ? codeDefaults.lastPlaceExtraZoom.maxExtraZooms
+            : Number(row.zoom_max_extra_zooms) || 0,
+      },
+    };
+  } catch {
+    return codeDefaults;
+  }
+}
+
+
 async function fetchVehicleOverrideRows(db, ids, hasOverrideCols) {
   if (!hasOverrideCols || !ids.length) return [];
 
@@ -208,6 +278,7 @@ export async function onRequest(context) {
   let defaults = await fetchDefaultsFromDb(db, competitionType);
   let tuning = await fetchRaceTuningFromDb(db, competitionType);
 
+  const zoomSettings = await fetchZoomSettingsFromDb(db, competitionType);
   // Apply request-level overrides *on top of* DB defaults.
   // This is used for per-map physics overrides.
   if (defaultsOverride)
@@ -276,6 +347,7 @@ export async function onRequest(context) {
     competitionType,
     defaults,
     tuning,
+    zoomSettings,
     vehicles,
     missing,
   });

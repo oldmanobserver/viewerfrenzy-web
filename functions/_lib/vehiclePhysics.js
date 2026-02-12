@@ -230,3 +230,20 @@ export function computeEffectiveVehiclePhysics(defaults, overrideRow) {
     collisionSpinMult: clamp(csm ?? d.collisionSpinMult, 0, 10),
   };
 }
+
+
+// Viewer zoom defaults (race viewer !zoom command).
+export function computeCodeDefaultZoomSettings(_competitionType) {
+  return {
+    enabled: true,
+    baseZoomCount: 1,
+    lastPlaceExtraZoom: {
+      enabled: false,
+      minRacers: 10,
+      useBottomPercent: true,
+      bottomPercent: 10, // percent value (10 = 10%)
+      unlimitedExtraZooms: true,
+      maxExtraZooms: 1,
+    },
+  };
+}
