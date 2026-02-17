@@ -51,8 +51,8 @@ function ensureLegalLinksFooter() {
 
   // Keep links in a new tab so the user doesn't lose their current page.
   div.innerHTML =
-    'Legal: <a class="vf-link" href="/privacy-policy.html" target="_blank" rel="noopener">Privacy</a> · ' +
-    '<a class="vf-link" href="/terms.html" target="_blank" rel="noopener">Terms</a>';
+    'Legal: <a class="vf-link" href="/privacy-policy" target="_blank" rel="noopener">Privacy</a> · ' +
+    '<a class="vf-link" href="/terms" target="_blank" rel="noopener">Terms</a>';
 
   footer.appendChild(div);
 }
