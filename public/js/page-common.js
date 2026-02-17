@@ -37,6 +37,26 @@ function applyStreamerGate(me) {
   });
 }
 
+function ensureLegalLinksFooter() {
+  const footer = document.querySelector(".vf-sidenavFooter");
+  if (!footer) return;
+
+  // Avoid duplicates.
+  if (footer.querySelector("#vf-legalLinks")) return;
+
+  const div = document.createElement("div");
+  div.id = "vf-legalLinks";
+  div.className = "vf-small vf-muted";
+  div.style.marginTop = "10px";
+
+  // Keep links in a new tab so the user doesn't lose their current page.
+  div.innerHTML =
+    'Legal: <a class="vf-link" href="/privacy-policy.html" target="_blank" rel="noopener">Privacy</a> · ' +
+    '<a class="vf-link" href="/terms.html" target="_blank" rel="noopener">Terms</a>';
+
+  footer.appendChild(div);
+}
+
 async function init() {
   // Wire menu + basic UI handlers
   $("#vf-menuBtn")?.addEventListener("click", openMenu);
@@ -51,6 +71,7 @@ async function init() {
 
   updateUserUI(session.me);
   applyStreamerGate(session.me);
+  ensureLegalLinksFooter();
 
   const page = document.body?.dataset?.page || "";
   if (page) setActiveNav(page);

@@ -1,9 +1,8 @@
-/streamer https://streamer.viewerfrenzy.com/ 302
-/streamer/ https://streamer.viewerfrenzy.com/ 302
-/streamer.html https://streamer.viewerfrenzy.com/ 302
-
-/streamer-users https://streamer.viewerfrenzy.com/streamer-users 302
-/streamer-users.html https://streamer.viewerfrenzy.com/streamer-users 302
-
-/streamer-user-roles https://streamer.viewerfrenzy.com/streamer-user-roles 302
-/streamer-user-roles.html https://streamer.viewerfrenzy.com/streamer-user-roles 302
+/stats /stats.html 200
+/garage /garage.html 200
+/achievements /achievements.html 200
+/streamer /streamer.html 200
+/streamer-users /streamer-users.html 200
+/streamer-user-roles /streamer-user-roles.html 200
+/terms /terms.html 200
+/privacy-policy /privacy-policy.html 200
