@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark light" />
 
-    <title>ViewerFrenzy – Login</title>
-    <meta name="description" content="ViewerFrenzy – Stream-enabled racing chaos." />
+    <title>ViewerFrenzy</title>
+    <meta
+      name="description"
+      content="ViewerFrenzy – Stream-enabled racing chaos with viewer competitions, ships, and a powerful track builder."
+    />
 
     <link rel="preconnect" href="https://id.twitch.tv" />
     <link rel="preconnect" href="https://api.twitch.tv" />
@@ -18,37 +21,76 @@
   </head>
 
   <body>
-    <div class="vf-login">
-      <div class="vf-loginCard">
-        <div class="vf-brand">
-          <div class="vf-brandMark" aria-hidden="true">VF</div>
-          <div>
-            <div class="vf-brandTitle">ViewerFrenzy</div>
-            <div class="vf-brandTag">Pick your default ride for ViewerFrenzy.</div>
+    <div class="vf-home">
+      <main class="vf-homeMain">
+        <div class="vf-homeCard">
+          <header class="vf-homeHeader">
+            <img
+              class="vf-homeLogo"
+              src="/images/vf_logo2_transparent.png"
+              alt="ViewerFrenzy"
+              width="520"
+              height="176"
+              decoding="async"
+              loading="eager"
+            />
+
+            <h1 class="vf-homeTitle">ViewerFrenzy</h1>
+            <p class="vf-homeSubtitle vf-muted">
+              Stream-enabled racing chaos where your viewers compete and you crank the Frenzy.
+            </p>
+          </header>
+
+          <section class="vf-homeFeatures" aria-label="Key features">
+            <div class="vf-feature">
+              <div class="vf-featureTitle">Viewer competitions on land and in space</div>
+              <div class="vf-featureBody vf-muted">
+                Many viewer competitions including ground vehicles and space ships.
+              </div>
+            </div>
+
+            <div class="vf-feature">
+              <div class="vf-featureTitle">Highly customizable track builder</div>
+              <div class="vf-featureBody vf-muted">
+                If it’s in the game, it’s in the editor. Go Frenzy!
+              </div>
+            </div>
+          </section>
+
+          <section class="vf-homeCtas" aria-label="Links">
+            <a
+              class="vf-btn vf-btnSecondary vf-disabled"
+              href="#"
+              aria-disabled="true"
+              title="Steam page link will be added later"
+            >
+              Steam (coming soon)
+            </a>
+
+            <button id="vf-loginBtn" class="vf-btn vf-btnPrimary" type="button">
+              Login with Twitch
+            </button>
+
+            <div id="vf-loginStatus" class="vf-small vf-muted" style="margin-top: 10px" hidden></div>
+            <div id="vf-loginError" class="vf-alert vf-alertError" hidden></div>
+          </section>
+        </div>
+      </main>
+
+      <footer class="vf-homeFooter">
+        <div class="vf-homeFooterInner">
+          <div class="vf-homeFooterLinks">
+            <a class="vf-link vf-disabled" href="#" aria-disabled="true" title="Discord link will be added later">Discord</a>
+            <a class="vf-link vf-disabled" href="#" aria-disabled="true" title="Twitter/X link will be added later">Twitter</a>
+            <a class="vf-link vf-disabled" href="#" aria-disabled="true" title="Bluesky link will be added later">Bluesky</a>
+          </div>
+
+          <div class="vf-homeFooterLinks">
+            <a class="vf-link" href="/privacy-policy" target="_blank" rel="noopener">Privacy policy</a>
+            <a class="vf-link" href="/terms" target="_blank" rel="noopener">Terms &amp; conditions</a>
           </div>
         </div>
-
-        <div class="vf-loginBody">
-          <p class="vf-muted">
-            Log in with Twitch so we can save your default vehicles to your Twitch user id.
-          </p>
-
-          <button id="vf-loginBtn" class="vf-btn vf-btnPrimary" type="button">
-            Login with Twitch
-          </button>
-
-          <div id="vf-loginStatus" class="vf-small vf-muted" style="margin-top: 10px" hidden></div>
-
-          <div class="vf-small vf-muted" style="margin-top: 14px; line-height: 1.4;">
-            By continuing, you agree to the
-            <a class="vf-link" href="/terms" target="_blank" rel="noopener">Terms of Service</a>
-            and
-            <a class="vf-link" href="/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a>.
-          </div>
-        </div>
-
-        <div id="vf-loginError" class="vf-alert vf-alertError" hidden></div>
-      </div>
+      </footer>
     </div>
   </body>
 </html>
